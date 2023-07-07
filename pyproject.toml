@@ -6,6 +6,8 @@ authors = ["HuParry <huparry@outlook.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "nonebot_plugin_cp_broadcast"}]
+homepage = "https://github.com/HuParry/nonebot-plugin-cp-broadcast"
+repository = "https://github.com/HuParry/nonebot-plugin-cp-broadcast"
 
 [tool.poetry.dependencies]
 python = "^3.10"
