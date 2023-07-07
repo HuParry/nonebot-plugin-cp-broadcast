@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "nonebot-plugin-cp-broadcast"
 version = "0.1.5"
-description = "A nonebot plugin package"
+description = "Codeforces、牛客、AtCoder平台比赛查询，ACMer 必备"
 authors = ["HuParry <huparry@outlook.com>"]
 license = "MIT"
 readme = "README.md"
