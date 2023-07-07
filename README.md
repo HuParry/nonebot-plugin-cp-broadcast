@@ -89,7 +89,7 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 | help | 群员 | 否 | 群聊 | 发送帮助信息 |
 | update | 群员 | 否 | 群聊 | 手动更新比赛信息 |
 ### 效果图
-![](/docs/preview.webp)
+<img src="./docs/preview.webp" style="zoom:30%;" />
 
 这是本蒟蒻的第一个上传至 pypi 的 nonebot 项目，可能有很多不完善的地方，欢迎大家来 pull requests。 
 
