@@ -33,6 +33,10 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 为什么取 cp-broadcast 这个英文名呢？因为竞赛性编程的英文是：Competitive Programming，直接拿来做名字感觉太长了，因此我把它写成了缩写，broadcast 是播报的意思，因此就用 cp-broadcast 来当名字了。
 
+这是本蒟蒻的第一个上传至 pypi 的 nonebot2 项目，可能有很多不完善的地方，欢迎大家来提 issue 和 pull requests。 
+
+有任何问题可联系QQ：3411907440。
+
 ## 💿 安装
 
 <details>
@@ -101,6 +105,3 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 ### 效果图
 <img src="./docs/preview.webp" style="zoom:30%;" />
 
-这是本蒟蒻的第一个上传至 pypi 的 nonebot 项目，可能有很多不完善的地方，欢迎大家来 pull requests。 
-
-有任何问题可联系QQ：3411907440
