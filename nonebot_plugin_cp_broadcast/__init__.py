@@ -9,7 +9,6 @@ from nonebot import require, get_bot
 from nonebot.rule import to_me
 from nonebot.log import logger
 import asyncio
-import re
 
 cp_broadcast_list = cp_broadcast_config.cp_broadcast_list
 cp_broadcast_botname = cp_broadcast_config.cp_broadcast_botname
@@ -32,12 +31,6 @@ __plugin_meta__ = PluginMetadata(
     homepage="https://github.com/HuParry/nonebot-plugin-cp-broadcast",
     config=Config,
     supported_adapters = {"nonebot.adapters.onebot.v11"},
-    extra={
-        "unique_name": "cp-broadcast",
-        "example": "today",
-        "author": "HuParry <huparry@outlook.com>",
-        "version": "0.1.5",
-    }
 )
 
 
