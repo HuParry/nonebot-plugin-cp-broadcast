@@ -3,6 +3,7 @@ import datetime
 from bs4 import BeautifulSoup
 from nonebot.plugin import on_fullmatch
 from nonebot.adapters.onebot.v11.message import Message
+from nonebot.log import logger
 import asyncio
 import re
 
@@ -18,7 +19,7 @@ async def get_data_atc() -> bool:  #以元组形式插入列表中，从左到�
         try:
             if len(atc) > 0:
                 atc.clear()
-            html = urllib.request.urlopen(url).read()
+            html = urllib.request.urlopen(url, timeout=20.0).read()
             soup = BeautifulSoup(html,'lxml').find_all(name = 'div', attrs = {'id' : 'contest-table-upcoming'})[0].find_all('tbody')[0].find_all('td')
             ans1 = str(soup[1].contents[5].contents[0])
             url1 = 'https://atcoder.jp' + re.findall(r'<a href="(.+?)">',str(soup[1]))[0]
@@ -33,7 +34,8 @@ async def get_data_atc() -> bool:  #以元组形式插入列表中，从左到�
             atc.append([ans1, ans2, url1])
             atc.append([ans3, ans4, url2])
             return True
-        except:
+        except Exception as e:
+            logger.warning(str(e))
             num += 1
             await asyncio.sleep(2)
     return False
