@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-cp-broadcast"
-version = "0.2.0"
+version = "0.2.1"
 description = "Codeforces、牛客、AtCoder平台比赛查询，ACMer 必备"
 authors = ["HuParry <huparry@outlook.com>"]
 license = "MIT"
@@ -10,14 +10,14 @@ homepage = "https://github.com/HuParry/nonebot-plugin-cp-broadcast"
 repository = "https://github.com/HuParry/nonebot-plugin-cp-broadcast"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.8"
 nonebot2 = { version = "^2.0.0", extras = ["fastapi"] }
-nonebot-adapter-onebot = "^2.2.2"
+nonebot-adapter-onebot = ">=2.1.5"
 httpx = ">=0.20.0,<1.0.0"
-nonebot-plugin-apscheduler = "^0.3.0"
-fake-useragent = "^1.1.3"
-bs4 = "^0.0.1"
-asyncio = "^3.4.3"
+nonebot-plugin-apscheduler = ">=0.3.0"
+fake-useragent = ">=1.1.3"
+bs4 = ">=0.0.1"
+asyncio = ">=3.4.3"
 
 [build-system]
 requires = ["poetry-core"]
