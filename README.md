@@ -31,6 +31,8 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 由于 AtCoder 网站没提供比赛信息的 API，因此是直接对网页进行爬取的，代码中是爬取两个比赛，你可以自己修改得更多。
 
+除了爬取比赛这一基本功能外，它还支持 Codeforces 平台一些信息的查询，具体指令将在下文介绍。
+
 为什么取 cp-broadcast 这个英文名呢？因为竞赛性编程的英文是：Competitive Programming，直接拿来做名字感觉太长了，因此我把它写成了缩写，broadcast 是播报的意思，因此就用 cp-broadcast 来当名字了。
 
 这是本蒟蒻的第一个上传至 pypi 的 nonebot2 项目，可能有很多不完善的地方，欢迎大家来提 issue 和 pull requests。 
@@ -102,6 +104,28 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 | `next` | 群员 | 否 | 群聊 | 发送今天后的部分比赛信息 |
 | `help` | 群员 | 是 | 群聊 | 发送帮助信息 |
 | `update` | 群员 | 否 | 群聊 | 手动更新比赛信息 |
-### 效果图
-<img src="./docs/preview.webp" style="zoom:30%;" />
+| `cf监视` | 群员 | 是 | 群聊 | 监视某人的 rating 变化 |
+| `cf监视列表` | 群员 | 是 | 群聊 | 展示已经监视了哪些人 |
+| `cf查询` | 群员 | 是 | 群聊 | 查询对应 id 的相关信息 |
 
+
+### 效果图
+<img src="./docs/cf.JPG" style="zoom:30%;" />
+
+<img src="./docs/nc.JPG" style="zoom:30%;" />
+
+<img src="./docs/atc.JPG" style="zoom:30%;" />
+
+<img src="./docs/today.JPG" style="zoom:30%;" />
+
+<img src="./docs/next.JPG" style="zoom:30%;" />
+
+<img src="./docs/help.JPG" style="zoom:30%;" />
+
+<img src="./docs/update.JPG" style="zoom:30%;" />
+
+<img src="./docs/cfjianshi.JPG" style="zoom:30%;" />
+
+<img src="./docs/cfjianshiliebiao.JPG" style="zoom:30%;" />
+
+<img src="./docs/cfchaxun.JPG" style="zoom:30%;" />

@@ -1,7 +1,11 @@
 import time
 from httpx import AsyncClient
-from nonebot.plugin import on_fullmatch
+from nonebot.plugin import on_fullmatch, on_command
 from nonebot.adapters.onebot.v11.message import Message
+from nonebot.adapters.onebot.v11 import Bot, PrivateMessageEvent,GroupMessageEvent
+from nonebot.params import CommandArg
+from nonebot.rule import to_me
+from .sqlite3 import *
 import asyncio
 
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
@@ -51,8 +55,41 @@ async def ans_cf() -> str:
             break
     return f"找到最近的 {tot} 场cf比赛为：\n" + msg
 
+
+
 cf_matcher = on_fullmatch('cf',priority = 80,block=True)
+bind = on_command('cf监视', rule=to_me(), priority=80, block=True)
+bind_list = on_fullmatch('cf监视列表', rule=to_me(), priority=78, block=True)
+query = on_command('cf查询', rule=to_me(), priority=79, block=True)
+
+
 @cf_matcher.handle()
 async def reply_handle():
     msg = await ans_cf()
     await cf_matcher.finish(msg)
+
+@bind.handle()
+async def bind_handle(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    cfid = args.extract_plain_text()
+    if cfid:
+        status = await addUser(cfid, event.get_user_id())
+        if status:
+            await bind.finish(f'监视{cfid}成功！')
+        else:
+            await bind.finish(f'监视{cfid}失败！请检查该用户是否存在')
+    else:
+        await bind.finish('绑定失败，请按照格式发起指令！')
+
+@bind_list.handle()
+async def bind_list_handle():
+    msg = await returnBindList()
+    await bind_list.finish(msg)
+
+@query.handle()
+async def query_handle(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    cfid = args.extract_plain_text()
+    if cfid:
+        msg = await queryUser(cfid)
+        await query.finish(msg)
+    else:
+        await bind.finish('绑定失败，请按照格式发起指令！')

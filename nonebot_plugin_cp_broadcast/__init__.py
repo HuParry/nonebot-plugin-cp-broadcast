@@ -2,6 +2,7 @@ from .config import Config, cp_broadcast_config
 from .codeforces import *
 from .nowcoder import *
 from .atcoder import *
+from .sqlite3 import *
 import datetime
 from datetime import timedelta
 from nonebot.plugin import on_fullmatch
@@ -21,6 +22,9 @@ __plugin_meta__ = PluginMetadata(
     name="算法竞赛比赛查询",
     description="可以查询牛客、atcoder、codeforces平台的今天和近几天的比赛信息",
     usage="cf->查询cf比赛\n"\
+        "@{botname} cf查询+id->查询某人信息\n"\
+        "@{botname} cf监视+id->监视某人rating变化\n"\
+        "@{botname} cf监视列表->展示已监视的选手id\n"\
         "nc/牛客->查询牛客比赛\n"\
         "atc->查询atcoder比赛\n"\
         "today->查询今天的比赛\n"\
@@ -200,7 +204,7 @@ async def auto_broadcast():
 
 if scheduler:
     scheduler.add_job(auto_broadcast, 
-                      "cron", hour=cp_broadcast_time['hour'],minute=cp_broadcast_time['minute'],id="_-"
+                      "cron", hour=cp_broadcast_time['hour'],minute=cp_broadcast_time['minute'],id="auto_broadcast"
                       )
 
 #凌晨12点自动更新比赛信息
@@ -230,3 +234,23 @@ update_matcher = on_fullmatch('update', priority=70, block=True)
 async def reply():
     await update()
     await update_matcher.finish('数据已更新完成')
+
+
+#cf分数变化提醒
+async def ratingReminder():
+    await asyncio.sleep(1)
+    logger.info('cf分数变化检测开始')
+    messList = await returRatingChangeInfo()
+    if len(messList) == 0:
+        return
+    for id in cp_broadcast_list:
+        await asyncio.sleep(2)
+        for mess in messList:
+            await get_bot().send_group_msg(group_id=id, message=mess['output'])
+            await asyncio.sleep(2)
+
+
+if scheduler:
+    scheduler.add_job(
+        ratingReminder, "interval", minutes=20, id="ratingReminder"
+    )
