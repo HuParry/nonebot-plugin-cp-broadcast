@@ -37,8 +37,14 @@ __plugin_meta__ = PluginMetadata(
 try:
     scheduler = require("nonebot_plugin_apscheduler").scheduler
 except BaseException:
-    logger.warning('未检测到定时插件，定时功能将不启用')
     scheduler = None
+
+logger.opt(colors=True).info(
+    "已检测到软依赖<y>nonebot_plugin_apscheduler</y>, <g>开启定时任务功能</g>"
+    if scheduler
+    else "未检测到软依赖<y>nonebot_plugin_apscheduler</y>, <r>禁用定时任务功能</r>"
+)
+
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
 
 async def ans_today():  #today
