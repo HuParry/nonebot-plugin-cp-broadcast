@@ -21,9 +21,11 @@ from nonebot.plugin import PluginMetadata
 __plugin_meta__ = PluginMetadata(
     name="算法竞赛比赛查询",
     description="可以查询牛客、atcoder、codeforces平台的今天和近几天的比赛信息",
-    usage="cf->查询cf比赛\n"\
+    usage=\
+        "cf->查询cf比赛\n"\
         "@{botname} cf查询+id->查询某人信息\n"\
         "@{botname} cf监视+id->监视某人rating变化\n"\
+        "@{botname} cf监视移除+id->不再监视某人rating变化"\
         "@{botname} cf监视列表->展示已监视的选手id\n"\
         "nc/牛客->查询牛客比赛\n"\
         "atc->查询atcoder比赛\n"\

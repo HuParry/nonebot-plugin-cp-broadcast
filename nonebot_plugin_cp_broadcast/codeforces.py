@@ -59,6 +59,7 @@ async def ans_cf() -> str:
 
 cf_matcher = on_fullmatch('cf',priority = 80,block=True)
 bind = on_command('cf监视', rule=to_me(), priority=80, block=True)
+bind_remove = on_command('cf监视移除', rule=to_me(), priority=80, block=True)
 bind_list = on_fullmatch('cf监视列表', rule=to_me(), priority=78, block=True)
 query = on_command('cf查询', rule=to_me(), priority=79, block=True)
 
@@ -79,6 +80,16 @@ async def bind_handle(bot: Bot, event: GroupMessageEvent, args: Message = Comman
             await bind.finish(f'监视{cfid}失败！请检查该用户是否存在')
     else:
         await bind.finish('绑定失败，请按照格式发起指令！')
+
+@bind_remove.handle()
+async def bind_remove_handle(args: Message = CommandArg()):
+    cfid = args.extract_plain_text()
+    if cfid:
+        status = await removeUser(cfid)
+        if status:
+            await bind_remove.finish(f'{cfid}移除成功')
+        else:
+            await bind_remove.finish(f'{cfid}移除失败')
 
 @bind_list.handle()
 async def bind_list_handle():

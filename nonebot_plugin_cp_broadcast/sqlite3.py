@@ -3,6 +3,7 @@ from nonebot.log import logger
 import sqlite3
 import json
 import datetime
+import time
 from httpx import AsyncClient
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 import asyncio
@@ -72,6 +73,41 @@ async def addUser(id: str, QQ: int):
     else:
         logger.warning('添加用户失败')
         return False
+    
+async def removeUser(id: str):
+    global cf_user_info_baseurl, cursor, conn
+    cf_user_info_url = cf_user_info_baseurl + id
+
+    try:
+        async with AsyncClient() as client:
+            response = await client.get(cf_user_info_url, timeout=10.0)
+        response.raise_for_status()
+
+        user_data = json.loads(response.text)
+    except Exception as e:
+        logger.warning(e)
+        return False
+    
+    cfid = ''
+    if user_data['status'] == 'OK':
+        resluts = user_data['result']
+
+        for reslut in resluts:
+            cfid = str(reslut['handle'])
+    else:
+        logger.warning(f"cf api查询状态为{user_data['status']}")
+        return False
+
+    conn.execute('SELECT * FROM CF_User WHERE id = ?', (cfid,))
+    data = cursor.fetchall()
+    if data is None:
+        logger.warning(f'监视成员中没有此人:{cfid}')
+        return False
+    
+    conn.execute('DELETE FROM CF_User WHERE id = ?', (cfid,))
+    conn.commit()
+
+    return True
         
 async def updateUser():
     Users = []
@@ -118,7 +154,6 @@ async def updateUser():
         else:
             logger.warning("数据请求失败")
 
-
     return Users
 
 async def returRatingChangeInfo():
@@ -127,13 +162,13 @@ async def returRatingChangeInfo():
 
     global cursor, conn
     for user in Users:
-        output=f"当前时间：{datetime.datetime.now()}\n"
+        output=f"当前时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
         cursor.execute('SELECT now_rating,last_rating,QQ FROM CF_User WHERE id = ?', (user.id,))
-        row = cursor.fetchone()
+        row = cursor.fetchall()
         now_rating, last_rating, QQ = row
         if last_rating != now_rating:
             change = now_rating - last_rating
-            output += f"cf用户 {user.id} 分数发生变化，从{last_rating} → {now_rating}  变动了{change}分！\n"
+            output += f"cf用户 {user.id} 分数发生变化，从 {last_rating} → {now_rating}，变动了{change}分！\n"
             outputlist.append({'QQ':QQ,'output':output})
 
     return outputlist
@@ -189,7 +224,7 @@ async def queryUser(id: str):
 
             msg = MessageSegment.image(pic)
             msg += Message(
-                "name: " + name + \
+                "\nname: " + name + \
                 "\nrank: " + rank + \
                 "\nrating: " + str(contest_rating) + \
                 "\nmax rating: " + str(max_rating) + \

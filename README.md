@@ -105,6 +105,7 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 | `help` | 群员 | 是 | 群聊 | 发送帮助信息 |
 | `update` | 群员 | 否 | 群聊 | 手动更新比赛信息 |
 | `cf监视` | 群员 | 是 | 群聊 | 监视某人的 rating 变化 |
+| `cf监视移除` | 群员 | 是 | 群聊 | 移除监视某人的 rating 变化 |
 | `cf监视列表` | 群员 | 是 | 群聊 | 展示已经监视了哪些人 |
 | `cf查询` | 群员 | 是 | 群聊 | 查询对应 id 的相关信息 |
 
@@ -125,6 +126,8 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 <img src="./docs/update.JPG" style="zoom:30%;" />
 
 <img src="./docs/cfjianshi.JPG" style="zoom:30%;" />
+
+<img src="./docs/remove.png" style="zoom:30%;" />
 
 <img src="./docs/cfjianshiliebiao.JPG" style="zoom:30%;" />
 
