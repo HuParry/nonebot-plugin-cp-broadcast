@@ -164,7 +164,7 @@ async def returRatingChangeInfo():
     for user in Users:
         output=f"当前时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
         cursor.execute('SELECT now_rating,last_rating,QQ FROM CF_User WHERE id = ?', (user.id,))
-        row = cursor.fetchall()
+        row = cursor.fetchone()
         now_rating, last_rating, QQ = row
         if last_rating != now_rating:
             change = now_rating - last_rating
