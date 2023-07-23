@@ -31,11 +31,11 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 由于 AtCoder 网站没提供比赛信息的 API，因此是直接对网页进行爬取的，代码中是爬取两个比赛，你可以自己修改得更多。
 
-除了爬取比赛这一基本功能外，它还支持 Codeforces 平台一些信息的查询，具体指令将在下文介绍。
+除了爬取比赛信息这一基本功能外，它还支持 Codeforces 平台一些信息的查询，譬如监视某个 id 的 rating 变化情况，具体指令将在下文介绍。
 
 为什么取 cp-broadcast 这个英文名呢？因为竞赛性编程的英文是：Competitive Programming，直接拿来做名字感觉太长了，因此我把它写成了缩写，broadcast 是播报的意思，因此就用 cp-broadcast 来当名字了。
 
-这是本蒟蒻的第一个上传至 pypi 的 nonebot2 项目，可能有很多不完善的地方，欢迎大家来提 issue 和 pull requests。 
+插件可能有很多不完善的地方，欢迎大家来提 issue 和 pull requests。 
 
 有任何问题可联系QQ：3411907440。
 
@@ -90,6 +90,8 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 | cp_broadcast_botname | 否 | "bot" | 填入你 bot 的名字，在 `help` 指令下会使用到你的 bot 的名字 |
 | cp_broadcast_time | 否 | {"hour":"7", "minute":"20"} | 每日在群聊播报比赛信息的时间，默认是早上 7 点 20，你可以在配置文件中按默认值格式修改成你想要的时间 |
 | cp_broadcast_updatetime | 否 | {"hour":"0", "minute":"0"} | 每天自动更新比赛数据的时间，默认是 0 点 0 分，你可以在配置文件中按默认值格式修改成你想要的时间 |
+| cp_broadcast_cf_list | 否 | [ ] | 开启 Codeforces 播报功能的群聊，cf监视的相关功能只在指定群聊里发送 |
+
 
 该插件依赖 [nonebot_plugin_apscheduler](https://github.com/nonebot/plugin-apscheduler) 实现定时发送功能，如果你未安装此依赖的话，将无法触发与定时相关的功能。
 
@@ -132,3 +134,5 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 <img src="./docs/cfjianshiliebiao.JPG" style="zoom:30%;" />
 
 <img src="./docs/cfchaxun.JPG" style="zoom:30%;" />
+
+<img src="./docs/cf_change.png" style="zoom:30%;" />

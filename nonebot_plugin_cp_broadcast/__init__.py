@@ -15,6 +15,7 @@ cp_broadcast_list = cp_broadcast_config.cp_broadcast_list
 cp_broadcast_botname = cp_broadcast_config.cp_broadcast_botname
 cp_broadcast_time = cp_broadcast_config.cp_broadcast_time
 cp_broadcast_updatetime = cp_broadcast_config.cp_broadcast_updatetime
+cp_broadcast_cf_list = cp_broadcast_config.cp_broadcast_cf_list
 
 from nonebot.plugin import PluginMetadata
 
@@ -245,7 +246,7 @@ async def ratingReminder():
     messList = await returRatingChangeInfo()
     if len(messList) == 0:
         return
-    for id in cp_broadcast_list:
+    for id in cp_broadcast_cf_list:
         await asyncio.sleep(2)
         for mess in messList:
             await get_bot().send_group_msg(group_id=id, message=mess['output'])
