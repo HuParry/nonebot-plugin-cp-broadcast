@@ -29,7 +29,7 @@ cursor.execute("""
 class CF_UserType:
     def __init__(self, id, now_rating, update_time, QQ, status, last_rating, avatar_url):
         self.id = id
-        self.now_rating = now_rating if now_rating is not None else 0
+        self.now_rating = now_rating if now_rating is not None else 0                  # cf上次上线时间
         self.update_time = update_time if update_time is not None else 0
         self.QQ = QQ if QQ is not None else 0
         self.status = status if status is not None else 1
@@ -54,7 +54,7 @@ async def addUser(id: str, QQ: int):
         results = data['result']
 
         for result in results:
-            update_time = int(datetime.datetime.now().timestamp())
+            update_time = int(result["lastOnlineTimeSeconds"])
             user = CF_UserType(result["handle"], result["rating"], update_time, QQ, 1, result["rating"], result["avatar"])
             cursor.execute('''
             INSERT OR REPLACE INTO CF_User (id, now_rating, update_time,QQ,status,last_rating,avatar_url)
@@ -110,7 +110,7 @@ async def removeUser(id: str):
     return True
         
 async def updateUser():
-    Users = []
+    Users = {'ratingChange' : [], 'cfOnline' : []}
     global cf_user_info_baseurl, cursor, conn
 
     cursor.execute('SELECT * FROM CF_User')
@@ -134,9 +134,13 @@ async def updateUser():
             
             # 遍历每个结果并储存键值
             for result in results:
-                update_time = int(datetime.datetime.now().timestamp())
+                update_time = int(result["lastOnlineTimeSeconds"])
+
+                if update_time != Oupdate_time:
+                    Users['cfOnline'].append(str(Oid))
+
                 user = CF_UserType(Oid, result["rating"], update_time, OQQ, Ostatus, Onow_rating, result["avatar"])
-                Users.append(user)
+                Users['ratingChange'].append(user)
 
                 cursor.execute('''
                 INSERT OR REPLACE INTO CF_User (id, now_rating, update_time,QQ,status,last_rating,avatar_url)
@@ -156,12 +160,12 @@ async def updateUser():
 
     return Users
 
-async def returRatingChangeInfo():
-    outputlist = []
+async def returChangeInfo():
+    outputlist = {'ratingChange' : [], 'cfOnline' : []}
     Users = await updateUser()
 
     global cursor, conn
-    for user in Users:
+    for user in Users['ratingChange']:
         output=f"当前时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
         cursor.execute('SELECT now_rating,last_rating,QQ FROM CF_User WHERE id = ?', (user.id,))
         row = cursor.fetchone()
@@ -169,7 +173,11 @@ async def returRatingChangeInfo():
         if last_rating != now_rating:
             change = now_rating - last_rating
             output += f"cf用户 {user.id} 分数发生变化，从 {last_rating} → {now_rating}，变动了{change}分！\n"
-            outputlist.append({'QQ':QQ,'output':output})
+            outputlist['ratingChange'].append(output)
+
+    for id in Users['cfOnline']:
+        ouput = f'卷王 {id} 又开始上cf做题啦！'
+        outputlist['cfOnline'].append(ouput)
 
     return outputlist
 

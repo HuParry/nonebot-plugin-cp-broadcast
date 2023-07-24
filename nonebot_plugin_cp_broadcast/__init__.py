@@ -16,6 +16,7 @@ cp_broadcast_botname = cp_broadcast_config.cp_broadcast_botname
 cp_broadcast_time = cp_broadcast_config.cp_broadcast_time
 cp_broadcast_updatetime = cp_broadcast_config.cp_broadcast_updatetime
 cp_broadcast_cf_list = cp_broadcast_config.cp_broadcast_cf_list
+cp_broadcast_cf_interval = cp_broadcast_config.cp_broadcast_cf_interval
 
 from nonebot.plugin import PluginMetadata
 
@@ -26,7 +27,7 @@ __plugin_meta__ = PluginMetadata(
         "cf->查询cf比赛\n"\
         "@{botname} cf查询+id->查询某人信息\n"\
         "@{botname} cf监视+id->监视某人rating变化\n"\
-        "@{botname} cf监视移除+id->不再监视某人rating变化"\
+        "@{botname} cf监视移除+id->不再监视某人rating变化\n"\
         "@{botname} cf监视列表->展示已监视的选手id\n"\
         "nc/牛客->查询牛客比赛\n"\
         "atc->查询atcoder比赛\n"\
@@ -239,21 +240,26 @@ async def reply():
     await update_matcher.finish('数据已更新完成')
 
 
-#cf分数变化提醒
-async def ratingReminder():
+#cf分数变化提醒、cf上线提醒
+async def cfBroadcast():
     await asyncio.sleep(1)
     logger.info('cf分数变化检测开始')
-    messList = await returRatingChangeInfo()
+    messList = await returChangeInfo()
     if len(messList) == 0:
         return
     for id in cp_broadcast_cf_list:
         await asyncio.sleep(2)
-        for mess in messList:
-            await get_bot().send_group_msg(group_id=id, message=mess['output'])
+        for mess in messList['ratingChange']:
+            await get_bot().send_group_msg(group_id=id, message=mess)
             await asyncio.sleep(2)
+
+        for mess in messList['cfOnline']:
+            await get_bot().send_group_msg(group_id=id, message=mess)
+            await asyncio.sleep(2)
+        
 
 
 if scheduler:
     scheduler.add_job(
-        ratingReminder, "interval", minutes=20, id="ratingReminder"
+        cfBroadcast, "interval", minutes=cp_broadcast_cf_interval, id="cfBroadcast"
     )
