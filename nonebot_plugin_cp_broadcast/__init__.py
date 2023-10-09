@@ -244,13 +244,16 @@ async def reply():
 async def cfBroadcast():
     await asyncio.sleep(1)
     logger.info('cf分数变化检测开始')
-    messList = await returChangeInfo()
+    messList = await returnChangeInfo()
     if len(messList) == 0:
         return
     for id in cp_broadcast_cf_list:
         await asyncio.sleep(2)
-        for mess in messList['ratingChange']:
-            await get_bot().send_group_msg(group_id=id, message=mess)
+        output=f"当前时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
+        if len(messList['ratingChange']) != 0:
+            for mess in messList['ratingChange']:
+                output += mess
+            await get_bot().send_group_msg(group_id=id, message=output)
             await asyncio.sleep(2)
 
         for mess in messList['cfOnline']:

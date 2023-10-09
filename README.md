@@ -124,7 +124,7 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 <img src="./docs/next.JPG" style="zoom:30%;" />
 
-<img src="./docs/help.jpg" style="zoom:30%;" />
+<img src="./docs/help.JPG" style="zoom:30%;" />
 
 <img src="./docs/update.JPG" style="zoom:30%;" />
 

@@ -134,10 +134,21 @@ async def updateUser():
             
             # 遍历每个结果并储存键值
             for result in results:
-                update_time = int(result["lastOnlineTimeSeconds"])
 
-                if update_time != Oupdate_time:
+                # msg = ''
+                # for u, v in result.items():
+                #     msg += str(u) + ":" + str(v)
+                # logger.info(msg)
+
+                try:
+                    update_time = int(result["lastOnlineTimeSeconds"])
+                except:
+                    update_time = Oupdate_time
+
+                if update_time > Oupdate_time:
                     Users['cfOnline'].append(str(Oid))
+                elif update_time < Oupdate_time:
+                    update_time = Oupdate_time
 
                 user = CF_UserType(Oid, result["rating"], update_time, OQQ, Ostatus, Onow_rating, result["avatar"])
                 Users['ratingChange'].append(user)
@@ -160,13 +171,13 @@ async def updateUser():
 
     return Users
 
-async def returChangeInfo():
+async def returnChangeInfo():
     outputlist = {'ratingChange' : [], 'cfOnline' : []}
     Users = await updateUser()
 
     global cursor, conn
     for user in Users['ratingChange']:
-        output=f"当前时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
+        output = ''
         cursor.execute('SELECT now_rating,last_rating,QQ FROM CF_User WHERE id = ?', (user.id,))
         row = cursor.fetchone()
         now_rating, last_rating, QQ = row
@@ -176,7 +187,7 @@ async def returChangeInfo():
             outputlist['ratingChange'].append(output)
 
     for id in Users['cfOnline']:
-        ouput = f'卷王 {id} 又开始上cf做题啦！'
+        ouput = f'卷王 {id} 又开始上cf做题啦！\n'
         outputlist['cfOnline'].append(ouput)
 
     return outputlist
