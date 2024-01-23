@@ -62,7 +62,7 @@ bind = on_command('cf监视', rule=to_me(), priority=80, block=True)
 bind_remove = on_command('cf监视移除', rule=to_me(), priority=80, block=True)
 bind_list = on_fullmatch('cf监视列表', rule=to_me(), priority=78, block=True)
 query = on_command('cf查询', rule=to_me(), priority=79, block=True)
-
+rank = on_command('cf排名', rule=to_me(), priority=80, block=True)
 
 @cf_matcher.handle()
 async def reply_handle():
@@ -73,7 +73,7 @@ async def reply_handle():
 async def bind_handle(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
     cfid = args.extract_plain_text()
     if cfid:
-        status = await addUser(cfid, event.get_user_id())
+        status = await addUser(cfid)
         if status:
             await bind.finish(f'监视{cfid}成功！')
         else:
@@ -104,3 +104,12 @@ async def query_handle(bot: Bot, event: GroupMessageEvent, args: Message = Comma
         await query.finish(msg)
     else:
         await bind.finish('绑定失败，请按照格式发起指令！')
+
+@rank.handle()
+async def rank_handle(bot: Bot):
+    data = await returnRanklist()
+    msg = '当前rating排名如下：\n'
+    for person in data:
+        msg += f'{person[0]} {person[1]}\n'
+
+    await rank.finish(msg)

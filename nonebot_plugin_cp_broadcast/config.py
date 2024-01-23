@@ -14,6 +14,7 @@ class Config(BaseModel, extra=Extra.ignore):
 
 cp_broadcast_path = Path() / "data" / "cp_broadcast"
 cf_user_info_baseurl = 'https://codeforces.com/api/user.info?handles='
-
+cf_user_status_baseurl = 'https://codeforces.com/api/user.status?handle={handle}&from=1&count=1'  #查询交题记录，仅返回一个
+cf_user_rating_baseurl = 'https://codeforces.com/api/user.rating?handle={handle}'
 
 cp_broadcast_config = Config.parse_obj(get_driver().config.dict())

@@ -1,4 +1,5 @@
-from .config import cp_broadcast_path, cf_user_info_baseurl
+from .config import (cp_broadcast_path, cf_user_info_baseurl,
+                     cf_user_status_baseurl, cf_user_rating_baseurl)
 from nonebot.log import logger
 import sqlite3
 import json
@@ -14,198 +15,304 @@ if not cp_broadcast_path.exists():
 conn = sqlite3.connect(cp_broadcast_path / 'data.db')
 cursor = conn.cursor()
 cursor.execute("""
-    CREATE TABLE IF NOT EXISTS CF_User (
-        id TEXT PRIMARY KEY,
-        now_rating INTEGER,
-        update_time INTEGER,
-        QQ INTEGER,
-        status INTEGER,
-        last_rating INTEGER,
-        avatar_url TEXT
+    CREATE TABLE IF NOT EXISTS CF_User_info (
+        handle TEXT PRIMARY KEY,   
+        contribution INTEGER,       
+        'rank' TEXT,               
+        rating INTEGER,            
+        maxRank TEXT,              
+        maxRanting INTEGER,        
+        lastOnlineTimeSeconds INTEGER, 
+        friendOfCount INTEGER,     
+        avatar TEXT            
     )
 """
 )
+# codeforces' username
+# User contribution.
+# User rank, String.
+# 现在的rating分
+# 最高的rank
+# 最高的rating分
+# 上次在线时间
+# The user's friend count
+# 头像链接
 
-class CF_UserType:
-    def __init__(self, id, now_rating, update_time, QQ, status, last_rating, avatar_url):
-        self.id = id
-        self.now_rating = now_rating if now_rating is not None else 0                  # cf上次上线时间
-        self.update_time = update_time if update_time is not None else 0
-        self.QQ = QQ if QQ is not None else 0
-        self.status = status if status is not None else 1
-        self.last_rating = last_rating if last_rating is not None else 0
-        self.avatar_url = avatar_url
-
-async def addUser(id: str, QQ: int):
-    global cf_user_info_baseurl, cursor, conn
-    cf_user_info_url = cf_user_info_baseurl + id
-
-    try:
-        async with AsyncClient() as client:
-            response = await client.get(cf_user_info_url, timeout=10.0)
-        response.raise_for_status()
-
-        data = json.loads(response.text)
-    except Exception as e:
-        logger.warning(e)
-        return False
-    
-    if data['status'] == 'OK':
-        results = data['result']
-
-        for result in results:
-            update_time = int(result["lastOnlineTimeSeconds"])
-            user = CF_UserType(result["handle"], result["rating"], update_time, QQ, 1, result["rating"], result["avatar"])
-            cursor.execute('''
-            INSERT OR REPLACE INTO CF_User (id, now_rating, update_time,QQ,status,last_rating,avatar_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (
-                user.id,
-                user.now_rating,
-                user.update_time,
-                user.QQ,
-                user.status,
-                user.last_rating,
-                user.avatar_url
-            ))
-            conn.commit()
-            return True
-    else:
-        logger.warning('添加用户失败')
-        return False
-    
-async def removeUser(id: str):
-    global cf_user_info_baseurl, cursor, conn
-    cf_user_info_url = cf_user_info_baseurl + id
-
-    try:
-        async with AsyncClient() as client:
-            response = await client.get(cf_user_info_url, timeout=10.0)
-        response.raise_for_status()
-
-        user_data = json.loads(response.text)
-    except Exception as e:
-        logger.warning(e)
-        return False
-    
-    cfid = ''
-    if user_data['status'] == 'OK':
-        resluts = user_data['result']
-
-        for reslut in resluts:
-            cfid = str(reslut['handle'])
-    else:
-        logger.warning(f"cf api查询状态为{user_data['status']}")
-        return False
-
-    conn.execute('SELECT * FROM CF_User WHERE id = ?', (cfid,))
-    data = cursor.fetchall()
-    if data is None:
-        logger.warning(f'监视成员中没有此人:{cfid}')
-        return False
-    
-    conn.execute('DELETE FROM CF_User WHERE id = ?', (cfid,))
-    conn.commit()
-
-    return True
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS CF_User_status (  
+        handle TEXT PRIMARY KEY,   
+        id INTEGER,                
+        contestId INTEGER,         
+        programmingLanguage TEXT,  
+        passedTestCount INTEGER,   
+        timeConsumedMillis INTEGER, 
+        memoryConsumedBytes INTEGER 
         
-async def updateUser():
-    Users = {'ratingChange' : [], 'cfOnline' : []}
-    global cf_user_info_baseurl, cursor, conn
+    )
+"""
+)
+#记录user的submission表
+# codeforces' username
+# one submission's id.
+# 比赛的id
+# 程序所用语言
+# 通过的数据组数
+# Maximum time in milliseconds, consumed by solution for one test.
+# Maximum memory in bytes, consumed by solution for one test.
 
-    cursor.execute('SELECT * FROM CF_User')
-    RS = cursor.fetchall()
-    for row in RS:
-        Oid, Onow_rating, Oupdate_time, OQQ, Ostatus, Olast_rating, Oavatar_url = row
-        user_info_url = cf_user_info_baseurl + Oid
-        await asyncio.sleep(0.3)
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS CF_User_rating (  
+        handle TEXT PRIMARY KEY,   
+        contestId INTEGER,         
+        contestName TEXT,          
+        'rank' INTEGER,            
+        oldRating INTEGER,         
+        newRating INTEGER          
+    )
+"""
+)
+#记录user的rating 变化记录，只记录最后一条
+# codeforces' username
+# contest's id.
+# 比赛的名称
+# 比赛排名
+# 变化前排名
+# 变化后排名
+
+class CF_UserInfo:
+    def __init__(self, handle, contribution, rank, rating, maxRank, maxRating,
+                 lastOnlineTimeSeconds, friendOfCount, avatar):
+        self.handle = str(handle).lower()
+        self.contribution = int(contribution)
+        self.rank = str(rank)
+        self.rating = int(rating)
+        self.maxRank = str(maxRank)
+        self.maxRating = int(maxRating)
+        self.lastOnlineTimeSeconds = int(lastOnlineTimeSeconds)
+        self.friendOfCount = int(friendOfCount)
+        self.avatar = str(avatar)
+
+    def returnTuple(self):
+        return (self.handle, self.contribution, self.rank, self.rating, self.maxRank, self.maxRating,
+                    self.lastOnlineTimeSeconds, self.friendOfCount, self.avatar)
+
+    @staticmethod
+    async def getByHttp(handle: str):
+        cf_user_info_url = cf_user_info_baseurl + handle
         try:
             async with AsyncClient() as client:
-                response = await client.get(user_info_url, timeout=10.0)
-            response.raise_for_status() 
+                response = await client.get(cf_user_info_url, timeout=10.0)
+            response.raise_for_status()
+
             data = json.loads(response.text)
         except Exception as e:
             logger.warning(e)
-            continue
+            return None
 
         if data["status"] == "OK":
-            # 获取result列表
-            results = data["result"]
-            
-            # 遍历每个结果并储存键值
-            for result in results:
+            for result in data["result"]:
+                Info = CF_UserInfo(
+                    handle=result["handle"],
+                    contribution=result["contribution"],
+                    rank=result["rank"] if result["rank"] is not None else "null",
+                    rating=result["rating"] if result["rating"] is not None else 0,
+                    maxRank=result["maxRank"] if result["maxRank"] is not None else "null",
+                    maxRating=result["maxRating"] if result["maxRating"] is not None else 0,
+                    lastOnlineTimeSeconds=result["lastOnlineTimeSeconds"] if result[
+                                                                                 "lastOnlineTimeSeconds"] is not None else 0,
+                    friendOfCount=result["friendOfCount"] if result["friendOfCount"] is not None else 0,
+                    avatar=result["avatar"] if result["avatar"] is not None else "404"
+                )
 
-                # msg = ''
-                # for u, v in result.items():
-                #     msg += str(u) + ":" + str(v)
-                # logger.info(msg)
+                return Info
 
-                try:
-                    update_time = int(result["lastOnlineTimeSeconds"])
-                except:
-                    update_time = Oupdate_time
+        logger.warning('请求失败')
+        return None
 
-                if update_time > Oupdate_time:
-                    Users['cfOnline'].append(str(Oid))
-                elif update_time < Oupdate_time:
-                    update_time = Oupdate_time
 
-                user = CF_UserType(Oid, result["rating"], update_time, OQQ, Ostatus, Onow_rating, result["avatar"])
-                Users['ratingChange'].append(user)
+class CF_UserStatus:
+    def __init__(self, handle, id, contestId, programmingLanguage,
+                 passedTestCount, timeConsumedMillis, memoryConsumedBytes):
+        self.handle = str(handle).lower()
+        self.id = int(id)
+        self.contestId = int(contestId)
+        self.programmingLanguage = str(programmingLanguage)
+        self.passedTestCount = int(passedTestCount)
+        self.timeConsumedMillis = int(timeConsumedMillis)
+        self.memoryConsumedBytes = int(memoryConsumedBytes)
 
-                cursor.execute('''
-                INSERT OR REPLACE INTO CF_User (id, now_rating, update_time,QQ,status,last_rating,avatar_url)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                user.id,
-                user.now_rating,
-                user.update_time,
-                user.QQ,
-                user.status,
-                user.last_rating,
-                user.avatar_url
-            ))
-                conn.commit()
-        else:
-            logger.warning("数据请求失败")
+    def returnTuple(self):
+        return (self.handle, self.id, self.contestId, self.programmingLanguage,
+                self.passedTestCount, self.timeConsumedMillis, self.memoryConsumedBytes)
+
+    @staticmethod
+    async def getByHttp(handle: str):
+        cf_user_status_url = cf_user_status_baseurl.format(handle=handle)
+        try:
+            async with AsyncClient() as client:
+                response = await client.get(cf_user_status_url, timeout=10.0)
+            response.raise_for_status()
+
+            data = json.loads(response.text)
+        except Exception as e:
+            logger.warning(e)
+            return None
+
+        if data["status"] != "OK":
+            logger.warning('请求失败')
+            return None
+
+        result = data["result"][0]
+        Status = CF_UserStatus(
+            handle=handle,
+            id=result["id"],
+            contestId=result["contestId"] if result["contestId"] is not None else 0,
+            programmingLanguage=result["programmingLanguage"],
+            passedTestCount=result["passedTestCount"],
+            timeConsumedMillis=result["timeConsumedMillis"],
+            memoryConsumedBytes=result["memoryConsumedBytes"]
+        )
+
+        return Status
+
+
+class CF_UserRating:
+    def __init__(self, handle, contestId, contestName, rank, oldRating, newRating):
+        self.handle = str(handle).lower()
+        self.contestId = int(contestId)
+        self.contestName = str(contestName)
+        self.rank = str(rank)
+        self.oldRating = int(oldRating)
+        self.newRating = int(newRating)
+
+    def returnTuple(self):
+        return (self.handle, self.contestId, self.contestName,
+                self.rank, self.oldRating, self.newRating)
+
+    @staticmethod
+    async def getByHttp(handle: str):
+        cf_user_rating_url = cf_user_rating_baseurl.format(handle=handle)
+        try:
+            async with AsyncClient() as client:
+                response = await client.get(cf_user_rating_url, timeout=10.0)
+            response.raise_for_status()
+
+            data = json.loads(response.text)
+        except Exception as e:
+            logger.warning(e)
+            return None
+
+        if data["status"] != "OK":
+            logger.warning('请求失败')
+            return None
+
+        result = data["result"][-1]
+        Rating = CF_UserRating(
+            handle=result["handle"],
+            contestId=result["contestId"],
+            contestName=result["contestName"],
+            rank=result["rank"],
+            oldRating=result["oldRating"],
+            newRating=result["newRating"]
+        )
+
+        return Rating
+
+
+async def addUser(id: str):
+    global conn, cursor
+    Info = await CF_UserInfo.getByHttp(id)
+    Status = await CF_UserStatus.getByHttp(id)
+    Rating = await CF_UserRating.getByHttp(id)
+
+    status = True
+
+    if Info is not None:
+        cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', Info.returnTuple())
+    else:
+        status = False
+
+    if Status is not None:
+        cursor.execute('INSERT OR REPLACE INTO CF_User_status VALUES (?, ?, ?, ?, ?, ?, ?)', Status.returnTuple())
+    else:
+        status = False
+
+    if Rating is not None:
+        cursor.execute('INSERT OR REPLACE INTO CF_User_rating VALUES (?, ?, ?, ?, ?, ?)', Rating.returnTuple())
+    else:
+        status = False
+
+    conn.commit()
+
+    return status
+
+
+async def removeUser(id: str):
+    global cursor, conn
+
+    cfid = id.lower()
+    cursor.execute('DELETE FROM CF_User_info WHERE handle = ?', (cfid,))
+    cursor.execute('DELETE FROM CF_User_status WHERE handle = ?', (cfid,))
+    cursor.execute('DELETE FROM CF_User_rating WHERE handle = ?', (cfid,))
+    conn.commit()
+
+    if cursor.rowcount == 0:
+        return False
+
+    return True
+
+
+async def returnChangeInfo():
+    Users = {'ratingChange': [], 'cfOnline': []}
+    global cursor, conn
+
+    cursor.execute('SELECT CF_User_info.handle, rating, CF_User_status.id FROM CF_User_info, CF_User_status WHERE CF_User_info.handle=CF_User_status.handle')
+    RS = cursor.fetchall()
+    for row in RS:
+        handle = row[0]
+        rating = row[1]
+        submission_id = row[2]
+
+        Info = await CF_UserInfo.getByHttp(handle)
+        Status = await CF_UserStatus.getByHttp(handle)
+        Rating = await CF_UserRating.getByHttp(handle)
+
+        #-----在这片区域可以写前后变化的操作
+        ## 分数变化，以json形式存入
+        if Rating.newRating != rating:
+            Users['ratingChange'].append({'handle': handle, 'oldRating': Rating.oldRating, 'newRating': Rating.newRating})
+
+        ## cf上线提醒，有交题说明在卷
+        if Status.id != submission_id:
+            Users['cfOnline'].append({'handle': handle})
+        #-----
+
+        if Info is not None:
+            cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', Info.returnTuple())
+
+        if Status is not None:
+            cursor.execute('INSERT OR REPLACE INTO CF_User_status VALUES (?, ?, ?, ?, ?, ?, ?)', Status.returnTuple())
+
+        if Rating is not None:
+            cursor.execute('INSERT OR REPLACE INTO CF_User_rating VALUES (?, ?, ?, ?, ?, ?)', Rating.returnTuple())
+
+        conn.commit()
 
     return Users
 
-async def returnChangeInfo():
-    outputlist = {'ratingChange' : [], 'cfOnline' : []}
-    Users = await updateUser()
-
-    global cursor, conn
-    for user in Users['ratingChange']:
-        output = ''
-        cursor.execute('SELECT now_rating,last_rating,QQ FROM CF_User WHERE id = ?', (user.id,))
-        row = cursor.fetchone()
-        now_rating, last_rating, QQ = row
-        if last_rating != now_rating:
-            change = now_rating - last_rating
-            output += f"cf用户 {user.id} 分数发生变化，从 {last_rating} → {now_rating}，变动了{change}分！\n"
-            outputlist['ratingChange'].append(output)
-
-    for id in Users['cfOnline']:
-        ouput = f'卷王 {id} 又开始上cf做题啦！\n'
-        outputlist['cfOnline'].append(ouput)
-
-    return outputlist
-
-
 async def returnBindList():
+    list_num = 10
     global cursor, conn
-    cursor.execute('SELECT id FROM CF_User')
+    cursor.execute('SELECT handle FROM CF_User_info')
     data = cursor.fetchall()
     if data is None:
         return f'当前无监视选手'
 
     msg = '当前已监视选手如下:\n'
-    
-    for i in range(0, 10 if len(data) >= 10 else len(data)):
-        curTuple = data[i]
-        msg += str(curTuple[0]) + '\n'
 
+    for curTuple in data:
+        msg += str(curTuple[0]) + '\n'
     return msg
 
 
@@ -223,12 +330,12 @@ async def queryUser(id: str):
     except Exception as e:
         logger.warning(e)
         return msg
-    
+
     if data['status'] == 'OK':
         results = data['result']
 
         for result in results:
-            avatar_url = result['avatar']
+            avatar_url = result['avatar'] if result["avatar"] is not None else "null"
             name = result['handle']
             rank = result['rank'] if 'rank' in result else 'Unrated'
             contest_rating = result['rating'] if 'rating' in result else '0'
@@ -238,7 +345,7 @@ async def queryUser(id: str):
 
             async with AsyncClient() as client:
                 resp = await client.get(avatar_url, timeout=10.0)
-            
+
             pic = resp.content
 
             msg = MessageSegment.image(pic)
@@ -255,3 +362,10 @@ async def queryUser(id: str):
     else:
         logger.warning('添加用户失败')
         return msg
+
+
+async def returnRanklist():
+    global cursor, conn
+    cursor.execute('SELECT handle, rating FROM CF_User_info ORDER BY rating DESC')
+    data = cursor.fetchall()
+    return data

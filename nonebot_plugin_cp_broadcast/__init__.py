@@ -29,6 +29,7 @@ __plugin_meta__ = PluginMetadata(
         "@{botname} cf监视+id->监视某人rating变化\n"\
         "@{botname} cf监视移除+id->不再监视某人rating变化\n"\
         "@{botname} cf监视列表->展示已监视的选手id\n"\
+        "@{botname} cf排名->展示已监视选手的排名\n"\
         "nc/牛客->查询牛客比赛\n"\
         "atc->查询atcoder比赛\n"\
         "today->查询今天的比赛\n"\
@@ -242,6 +243,14 @@ async def reply():
 
 #cf分数变化提醒、cf上线提醒
 async def cfBroadcast():
+    """
+    Users = {'ratingChange': [
+                {'handle': handle, 'oldRating': Rating.oldRating, 'newRating': Rating.newRating}
+                            ],
+            'cfOnline': [
+                {'handle': handle}
+                            ]}
+    """
     await asyncio.sleep(1)
     logger.info('cf分数变化检测开始')
     messList = await returnChangeInfo()
@@ -252,14 +261,13 @@ async def cfBroadcast():
         output=f"当前时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
         if len(messList['ratingChange']) != 0:
             for mess in messList['ratingChange']:
-                output += mess
+                output += f"cf用户 {mess['handle']} 分数发生变化，从 {mess['oldRating']} → {mess['newRating']}，变动了{int(mess['newRating']-int(mess['oldRating']))}分！\n"
             await get_bot().send_group_msg(group_id=id, message=output)
             await asyncio.sleep(2)
 
         for mess in messList['cfOnline']:
-            await get_bot().send_group_msg(group_id=id, message=mess)
+            await get_bot().send_group_msg(group_id=id, message=f"卷王 {mess['handle']} 又开始上cf做题啦！\n")
             await asyncio.sleep(2)
-        
 
 
 if scheduler:
