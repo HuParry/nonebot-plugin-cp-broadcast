@@ -84,15 +84,24 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 在 nonebot2 项目的`.env`文件中添加下表中的必填配置
 
-| 配置项 | 必填 | 默认值 | 说明 |
-|:-----:|:----:|:----:|:----:|
-| cp_broadcast_list | 否 | [ ] | 开启早晨自动播报今日比赛的群聊，填 QQ 群号，注意以字符串形式填入 |
-| cp_broadcast_botname | 否 | "bot" | 填入你 bot 的名字，在 `help` 指令下会使用到你的 bot 的名字 |
-| cp_broadcast_time | 否 | {"hour":"7", "minute":"20"} | 每日在群聊播报比赛信息的时间，默认是早上 7 点 20，你可以在配置文件中按默认值格式修改成你想要的时间 |
-| cp_broadcast_updatetime | 否 | {"hour":"0", "minute":"0"} | 每天自动更新比赛数据的时间，默认是 0 点 0 分，你可以在配置文件中按默认值格式修改成你想要的时间 |
-| cp_broadcast_cf_list | 否 | [ ] | 开启 Codeforces 播报功能的群聊，cf监视的相关功能只在指定群聊里发送 |
-| cp_broadcast_cf_interval | 否 | 10 | 更新 Codeforces 监视信息的时间间隙，默认为 10 分钟 |
+| 配置项 | 必填 | 默认值 |                                      说明                                      |
+|:-----:|:----:|:----:|:----------------------------------------------------------------------------:|
+| cp_broadcast_list | 否 | [ ] |                      开启早晨自动播报今日比赛的群聊，填 QQ 群号，注意以字符串形式填入                      |
+| cp_broadcast_botname | 否 | "bot" |                    填入你 bot 的名字，在 `help` 指令下会使用到你的 bot 的名字                    |
+| cp_broadcast_time | 否 | {"hour":"7", "minute":"20"} |             每日在群聊播报比赛信息的时间，默认是早上 7 点 20，你可以在配置文件中按默认值格式修改成你想要的时间             |
+| cp_broadcast_updatetime | 否 | {"hour":"0", "minute":"0"} |              每天自动更新比赛数据的时间，默认是 0 点 0 分，你可以在配置文件中按默认值格式修改成你想要的时间              |
+| cp_broadcast_cf_list | 否 | [ ] |                   开启 Codeforces 播报功能的群聊，cf监视的相关功能只在指定群聊里发送                   |
+| cp_broadcast_cf_interval | 否 | 10 | 更新 Codeforces 监视信息的时间间隙，默认为 10 分钟（不建议设置太短，可能会对服务器造成比较大的压力。另外监视人数多的话间隙尽量加长一点） |
 
+就像这样：
+```
+cp_broadcast_list=["xxxxxxxx"]
+cp_broadcast_botname="bot"
+cp_broadcast_time={"hour":"7", "minute":"20"}
+cp_broadcast_updatetime={"hour":"0", "minute":"0"}
+cp_broadcast_cf_list=["xxxxxxxx"]
+cp_broadcast_cf_interval=10
+```
 
 该插件依赖 [nonebot_plugin_apscheduler](https://github.com/nonebot/plugin-apscheduler) 实现定时发送功能，如果你未安装此依赖的话，将无法触发与定时相关的功能。
 
@@ -116,32 +125,33 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 
 ### 效果图
-<img src="./docs/cf.JPG" style="zoom:30%;" />
 
-<img src="./docs/nc.JPG" style="zoom:30%;" />
+<img src="./docs/cf.JPG" width="375"/>
 
-<img src="./docs/atc.JPG" style="zoom:30%;" />
+<img src="./docs/nc.JPG" width="375" />
 
-<img src="./docs/today.JPG" style="zoom:30%;" />
+<img src="./docs/atc.JPG" width="375" />
 
-<img src="./docs/next.JPG" style="zoom:30%;" />
+<img src="./docs/today.JPG" width="375" />
 
-<img src="./docs/help.png" style="zoom:30%;" />
+<img src="./docs/next.JPG" width="375" />
 
-<img src="./docs/update.JPG" style="zoom:30%;" />
+<img src="./docs/help.png" width="375" />
 
-<img src="./docs/cfjianshi.JPG" style="zoom:30%;" />
+<img src="./docs/update.JPG" width="375" />
 
-<img src="./docs/remove.png" style="zoom:30%;" />
+<img src="./docs/cfjianshi.JPG" width="375" />
 
-<img src="./docs/cfjianshiliebiao.png" style="zoom:30%;" />
+<img src="./docs/remove.png" width="375" />
 
-<img src="./docs/cfchaxun.JPG" style="zoom:30%;" />
+<img src="./docs/cfjianshiliebiao.png" width="375" />
 
-<img src="./docs/cf_change.png" style="zoom:30%;" />
+<img src="./docs/cfchaxun.JPG" width="375" />
 
-<img src="./docs/cf_change2.jpg" style="zoom:30%;" />
+<img src="./docs/cf_change.png" width="375" />
 
-<img src="./docs/cf_paimin.JPG" style="zoom:30%;" />
+<img src="./docs/cf_change2.jpg" width="375" />
 
-<img src="./docs/cf_jianshi.JPG" style="zoom:30%;" />
+<img src="./docs/cf_paimin.JPG" width="375" />
+
+<img src="./docs/cf_jianshi.JPG" width="375" />

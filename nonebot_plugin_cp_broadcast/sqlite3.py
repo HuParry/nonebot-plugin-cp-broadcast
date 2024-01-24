@@ -115,6 +115,7 @@ class CF_UserInfo:
     async def getByHttp(handle: str):
         cf_user_info_url = cf_user_info_baseurl + handle
         try:
+            await asyncio.sleep(0.5)
             async with AsyncClient() as client:
                 response = await client.get(cf_user_info_url, timeout=10.0)
             response.raise_for_status()
@@ -164,6 +165,7 @@ class CF_UserStatus:
     async def getByHttp(handle: str):
         cf_user_status_url = cf_user_status_baseurl.format(handle=handle)
         try:
+            await asyncio.sleep(0.5)
             async with AsyncClient() as client:
                 response = await client.get(cf_user_status_url, timeout=10.0)
             response.raise_for_status()
@@ -208,6 +210,7 @@ class CF_UserRating:
     async def getByHttp(handle: str):
         cf_user_rating_url = cf_user_rating_baseurl.format(handle=handle)
         try:
+            await asyncio.sleep(0.5)
             async with AsyncClient() as client:
                 response = await client.get(cf_user_rating_url, timeout=10.0)
             response.raise_for_status()
@@ -294,13 +297,18 @@ async def returnChangeInfo():
     Users = {'ratingChange': [], 'cfOnline': []}
     global cursor, conn
 
-    cursor.execute(
-        'SELECT CF_User_info.handle, rating, CF_User_status.id FROM CF_User_info, CF_User_status WHERE CF_User_info.handle=CF_User_status.handle')
+    cursor.execute('''
+        SELECT CF_User_info.handle, rating, CF_User_status.id, remarks, broadcast_time
+        FROM CF_User_info, CF_User_status, CF_User_remarks 
+        WHERE CF_User_info.handle=CF_User_status.handle and CF_User_info.handle=CF_User_remarks.handle
+    ''')
     RS = cursor.fetchall()
     for row in RS:
         handle = row[0]
         rating = row[1]
         submission_id = row[2]
+        remarks = row[3]
+        broadcast_time = int(row[4])
 
         Info = await CF_UserInfo.getByHttp(handle)
         Status = await CF_UserStatus.getByHttp(handle)
@@ -308,17 +316,15 @@ async def returnChangeInfo():
 
         # -----在这片区域可以写前后变化的操作
         ## 分数变化，以json形式存入
-        if Rating.newRating != rating:
+        if Rating is not None and Rating.newRating != rating:
             Users['ratingChange'].append(
-                {'handle': handle, 'oldRating': Rating.oldRating, 'newRating': Rating.newRating})
+                {'handle': handle, 'remarks' : remarks,'oldRating': Rating.oldRating, 'newRating': Rating.newRating})
 
         ## cf上线提醒，有交题，且两小时内没播报说明在卷
-        cursor.execute('select broadcast_time from CF_User_remarks where handle=?', (handle,))
-        data = cursor.fetchone()
-        if (Status.id != submission_id and
-                (data is not None and int(time.time()) - int(data[0]) >= 7200) ):
+        if (Status is not None and Status.id != submission_id and
+                (int(time.time()) - broadcast_time >= 7200) ):
             cursor.execute('update CF_User_remarks set broadcast_time=? where handle=?', (int(time.time()), handle))
-            Users['cfOnline'].append({'handle': handle})
+            Users['cfOnline'].append({'handle': handle, 'remarks' : remarks})
         # -----
 
         if Info is not None:

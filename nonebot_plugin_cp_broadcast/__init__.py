@@ -246,28 +246,27 @@ async def reply():
 async def cfBroadcast():
     """
     Users = {'ratingChange': [
-                {'handle': handle, 'oldRating': Rating.oldRating, 'newRating': Rating.newRating}
+                {'handle': handle, 'remarks' : remarks,'oldRating': Rating.oldRating, 'newRating': Rating.newRating}
                             ],
             'cfOnline': [
-                {'handle': handle}
+                {'handle': handle, 'remarks' : remarks}
                             ]}
     """
-    await asyncio.sleep(1)
-    logger.info('cf分数变化检测开始')
+    logger.info('cf监视工作开始')
     messList = await returnChangeInfo()
-    if len(messList) == 0:
-        return
+    logger.info('cf监视工作完成，结果已返回')
+
     for id in cp_broadcast_cf_list:
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         output=f"当前时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
         if len(messList['ratingChange']) != 0:
             for mess in messList['ratingChange']:
-                output += f"cf用户 {mess['handle']} 分数发生变化，从 {mess['oldRating']} → {mess['newRating']}，变动了{int(mess['newRating']-int(mess['oldRating']))}分！\n"
+                output += f"cf用户 {mess['handle']} ({mess['remarks']})分数发生变化，从 {mess['oldRating']} → {mess['newRating']}，变动了{int(mess['newRating']-int(mess['oldRating']))}分！\n"
             await get_bot().send_group_msg(group_id=id, message=output)
             await asyncio.sleep(2)
 
         for mess in messList['cfOnline']:
-            await get_bot().send_group_msg(group_id=id, message=f"卷王 {mess['handle']} 又开始上cf做题啦！\n")
+            await get_bot().send_group_msg(group_id=id, message=f"卷王 {mess['handle']} ({mess['remarks']})又开始上cf做题啦！\n")
             await asyncio.sleep(2)
 
 
