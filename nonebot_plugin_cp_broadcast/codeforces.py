@@ -63,6 +63,7 @@ bind_remove = on_command('cf监视移除', rule=to_me(), priority=80, block=True
 bind_list = on_fullmatch('cf监视列表', rule=to_me(), priority=78, block=True)
 query = on_command('cf查询', rule=to_me(), priority=79, block=True)
 rank = on_command('cf排名', rule=to_me(), priority=80, block=True)
+remarks = on_command('cf监视备注', rule=to_me(), priority=80, block=True)
 
 @cf_matcher.handle()
 async def reply_handle():
@@ -113,3 +114,16 @@ async def rank_handle(bot: Bot):
         msg += f'{person[0]} {person[1]}\n'
 
     await rank.finish(msg)
+
+@remarks.handle()
+async def remarks_handle(bot: Bot, args: Message = CommandArg()):
+    cf_list = args.extract_plain_text().split(' ')
+    if len(cf_list) != 2:
+        remarks.finish('格式不正确，请重新触发指令')
+
+    cf_id, cf_remarks = cf_list
+    status = await modifyRemarks(cf_id, cf_remarks)
+    if status:
+        await remarks.finish('设置成功！')
+    else:
+        await remarks.finish('设置失败！')

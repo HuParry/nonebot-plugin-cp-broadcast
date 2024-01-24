@@ -98,20 +98,21 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 ## 🎉 使用
 ### 指令表
-|      指令      | 权限 | 需要@ | 范围 |           说明            |
-|:------------:|:----:|:----:|:----:|:-----------------------:|
-|     `cf`     | 群员 | 否 | 群聊 | 发送最近三场 Codeforces 比赛的信息 |
-| `牛客` or `nc` | 群员 | 否 | 群聊 |      发送最近三场牛客比赛的信息      |
-|    `atc`     | 群员 | 否 | 群聊 |  发送最近两场 AtCoder 比赛的信息   |
-|   `today`    | 群员 | 否 | 群聊 |        发送今天的比赛信息        |
-|    `next`    | 群员 | 否 | 群聊 |      发送今天后的部分比赛信息       |
-|    `help`    | 群员 | 是 | 群聊 |         发送帮助信息          |
-|   `update`   | 群员 | 否 | 群聊 |        手动更新比赛信息         |
-|    `cf监视`    | 群员 | 是 | 群聊 |     监视某人的 rating 变化     |
-|   `cf监视移除`   | 群员 | 是 | 群聊 |    移除监视某人的 rating 变化    |
-|   `cf监视列表`   | 群员 | 是 | 群聊 |       展示已经监视了哪些人        |
-|    `cf查询`    | 群员 | 是 | 群聊 |      查询对应 id 的相关信息      |
-|    `cf排名`    | 群员 | 是 | 群聊 |    查询当前监视列表的rating排名    |
+|      指令      | 权限 | 需要@ | 范围 |             说明              |
+|:------------:|:----:|:----:|:----:|:---------------------------:|
+|     `cf`     | 群员 | 否 | 群聊 |   发送最近三场 Codeforces 比赛的信息   |
+| `牛客` or `nc` | 群员 | 否 | 群聊 |        发送最近三场牛客比赛的信息        |
+|    `atc`     | 群员 | 否 | 群聊 |    发送最近两场 AtCoder 比赛的信息     |
+|   `today`    | 群员 | 否 | 群聊 |          发送今天的比赛信息          |
+|    `next`    | 群员 | 否 | 群聊 |        发送今天后的部分比赛信息         |
+|    `help`    | 群员 | 是 | 群聊 |           发送帮助信息            |
+|   `update`   | 群员 | 否 | 群聊 |          手动更新比赛信息           |
+|    `cf监视`    | 群员 | 是 | 群聊 |       监视某人的 rating 变化       |
+|   `cf监视移除`   | 群员 | 是 | 群聊 |      移除监视某人的 rating 变化      |
+|   `cf监视列表`   | 群员 | 是 | 群聊 |         展示已经监视了哪些人          |
+|    `cf查询`    | 群员 | 是 | 群聊 |        查询对应 id 的相关信息        |
+|    `cf排名`    | 群员 | 是 | 群聊 |      查询当前监视列表的rating排名      |
+|   `cf监视备注`   | 群员 | 是 | 群聊 | 给某个已经被监视的人备注一个名字，两字符串之间用空格隔开 |
 
 
 ### 效果图
@@ -125,7 +126,7 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 <img src="./docs/next.JPG" style="zoom:30%;" />
 
-<img src="./docs/help.JPG" style="zoom:30%;" />
+<img src="./docs/help.png" style="zoom:30%;" />
 
 <img src="./docs/update.JPG" style="zoom:30%;" />
 
@@ -133,7 +134,7 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 <img src="./docs/remove.png" style="zoom:30%;" />
 
-<img src="./docs/cfjianshiliebiao.JPG" style="zoom:30%;" />
+<img src="./docs/cfjianshiliebiao.png" style="zoom:30%;" />
 
 <img src="./docs/cfchaxun.JPG" style="zoom:30%;" />
 
@@ -142,3 +143,5 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 <img src="./docs/cf_change2.jpg" style="zoom:30%;" />
 
 <img src="./docs/cf_paimin.JPG" style="zoom:30%;" />
+
+<img src="./docs/cf_jianshi.JPG" style="zoom:30%;" />

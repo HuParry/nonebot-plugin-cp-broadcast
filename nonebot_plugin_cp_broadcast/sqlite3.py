@@ -27,7 +27,7 @@ cursor.execute("""
         avatar TEXT            
     )
 """
-)
+               )
 # codeforces' username
 # User contribution.
 # User rank, String.
@@ -50,8 +50,8 @@ cursor.execute("""
         
     )
 """
-)
-#记录user的submission表
+               )
+# 记录user的submission表
 # codeforces' username
 # one submission's id.
 # 比赛的id
@@ -71,14 +71,28 @@ cursor.execute("""
         newRating INTEGER          
     )
 """
-)
-#记录user的rating 变化记录，只记录最后一条
+               )
+
+# 记录user的rating 变化记录，只记录最后一条
 # codeforces' username
 # contest's id.
 # 比赛的名称
 # 比赛排名
 # 变化前排名
 # 变化后排名
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS CF_User_remarks (  
+        handle TEXT PRIMARY KEY,   
+        remarks TEXT,
+        broadcast_time INTEGER    
+    )
+"""
+               )
+
+
+# user的id
+# 该user的备注名
 
 class CF_UserInfo:
     def __init__(self, handle, contribution, rank, rating, maxRank, maxRating,
@@ -95,7 +109,7 @@ class CF_UserInfo:
 
     def returnTuple(self):
         return (self.handle, self.contribution, self.rank, self.rating, self.maxRank, self.maxRating,
-                    self.lastOnlineTimeSeconds, self.friendOfCount, self.avatar)
+                self.lastOnlineTimeSeconds, self.friendOfCount, self.avatar)
 
     @staticmethod
     async def getByHttp(handle: str):
@@ -219,12 +233,22 @@ class CF_UserRating:
 
         return Rating
 
+class CF_UserRemarks:
+    def __init__(self, handle: str, remarks: str, broadcast_time: int):
+        self.handle = handle.lower()
+        self.remarks = remarks.lower()
+        self.broadcast_time = broadcast_time
+
+    def returnTuple(self):
+        return (self.handle, self.remarks, self.broadcast_time)
+
 
 async def addUser(id: str):
     global conn, cursor
     Info = await CF_UserInfo.getByHttp(id)
     Status = await CF_UserStatus.getByHttp(id)
     Rating = await CF_UserRating.getByHttp(id)
+    Remarks = CF_UserRemarks(id, id, 0)
 
     status = True
 
@@ -243,6 +267,8 @@ async def addUser(id: str):
     else:
         status = False
 
+    cursor.execute('INSERT OR REPLACE INTO CF_User_remarks VALUES (?, ?, ?)', Remarks.returnTuple())
+
     conn.commit()
 
     return status
@@ -255,6 +281,7 @@ async def removeUser(id: str):
     cursor.execute('DELETE FROM CF_User_info WHERE handle = ?', (cfid,))
     cursor.execute('DELETE FROM CF_User_status WHERE handle = ?', (cfid,))
     cursor.execute('DELETE FROM CF_User_rating WHERE handle = ?', (cfid,))
+    cursor.execute('DELETE FROM CF_User_remarks WHERE handle = ?', (cfid,))
     conn.commit()
 
     if cursor.rowcount == 0:
@@ -267,7 +294,8 @@ async def returnChangeInfo():
     Users = {'ratingChange': [], 'cfOnline': []}
     global cursor, conn
 
-    cursor.execute('SELECT CF_User_info.handle, rating, CF_User_status.id FROM CF_User_info, CF_User_status WHERE CF_User_info.handle=CF_User_status.handle')
+    cursor.execute(
+        'SELECT CF_User_info.handle, rating, CF_User_status.id FROM CF_User_info, CF_User_status WHERE CF_User_info.handle=CF_User_status.handle')
     RS = cursor.fetchall()
     for row in RS:
         handle = row[0]
@@ -278,15 +306,20 @@ async def returnChangeInfo():
         Status = await CF_UserStatus.getByHttp(handle)
         Rating = await CF_UserRating.getByHttp(handle)
 
-        #-----在这片区域可以写前后变化的操作
+        # -----在这片区域可以写前后变化的操作
         ## 分数变化，以json形式存入
         if Rating.newRating != rating:
-            Users['ratingChange'].append({'handle': handle, 'oldRating': Rating.oldRating, 'newRating': Rating.newRating})
+            Users['ratingChange'].append(
+                {'handle': handle, 'oldRating': Rating.oldRating, 'newRating': Rating.newRating})
 
-        ## cf上线提醒，有交题说明在卷
-        if Status.id != submission_id:
+        ## cf上线提醒，有交题，且两小时内没播报说明在卷
+        cursor.execute('select broadcast_time from CF_User_remarks where handle=?', (handle,))
+        data = cursor.fetchone()
+        if (Status.id != submission_id and
+                (data is not None and int(time.time()) - int(data[0]) >= 7200) ):
+            cursor.execute('update CF_User_remarks set broadcast_time=? where handle=?', (int(time.time()), handle))
             Users['cfOnline'].append({'handle': handle})
-        #-----
+        # -----
 
         if Info is not None:
             cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', Info.returnTuple())
@@ -301,6 +334,7 @@ async def returnChangeInfo():
 
     return Users
 
+
 async def returnBindList():
     list_num = 10
     global cursor, conn
@@ -312,7 +346,14 @@ async def returnBindList():
     msg = '当前已监视选手如下:\n'
 
     for curTuple in data:
-        msg += str(curTuple[0]) + '\n'
+        handle = str(curTuple[0])
+        cursor.execute('SELECT remarks FROM CF_User_remarks WHERE handle=?', (handle,))
+        data = cursor.fetchone()
+        if data is None:
+            remarks = "null"
+        else:
+            remarks = str(data[0])
+        msg += f'{handle}({remarks}) \n'
     return msg
 
 
@@ -369,3 +410,14 @@ async def returnRanklist():
     cursor.execute('SELECT handle, rating FROM CF_User_info ORDER BY rating DESC')
     data = cursor.fetchall()
     return data
+
+
+async def modifyRemarks(cf_id: str, cf_remarks: str):
+    global cursor, conn
+    cfid = cf_id.lower()
+
+    cursor.execute(f"insert or replace into CF_User_remarks(handle, remarks) select handle, '{cf_remarks}' from CF_User_info where handle=?", (cfid,))
+    conn.commit()
+    if cursor.rowcount == 0:
+        return False
+    return True

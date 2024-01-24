@@ -30,6 +30,7 @@ __plugin_meta__ = PluginMetadata(
         "@{botname} cf监视移除+id->不再监视某人rating变化\n"\
         "@{botname} cf监视列表->展示已监视的选手id\n"\
         "@{botname} cf排名->展示已监视选手的排名\n"\
+        "@{botname} cf监视备注->给某个监视选手备注\n"\
         "nc/牛客->查询牛客比赛\n"\
         "atc->查询atcoder比赛\n"\
         "today->查询今天的比赛\n"\
