@@ -249,7 +249,7 @@ async def cfBroadcast():
                 {'handle': handle, 'remarks' : remarks,'oldRating': Rating.oldRating, 'newRating': Rating.newRating}
                             ],
             'cfOnline': [
-                {'handle': handle, 'remarks' : remarks}
+                {'handle': handle, 'remarks' : remarks, 'contestId': contestId}
                             ]}
     """
     logger.info('cf监视工作开始')
@@ -263,11 +263,11 @@ async def cfBroadcast():
             for mess in messList['ratingChange']:
                 output += f"cf用户 {mess['handle']} ({mess['remarks']})分数发生变化，从 {mess['oldRating']} → {mess['newRating']}，变动了{int(mess['newRating']-int(mess['oldRating']))}分！\n"
             await get_bot().send_group_msg(group_id=id, message=output)
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
 
         for mess in messList['cfOnline']:
-            await get_bot().send_group_msg(group_id=id, message=f"卷王 {mess['handle']} ({mess['remarks']})又开始上cf做题啦！\n")
-            await asyncio.sleep(2)
+            await get_bot().send_group_msg(group_id=id, message=f"卷王 {mess['handle']} ({mess['remarks']})又开始上cf做题啦！他在做{mess['contestId']}！\n")
+            await asyncio.sleep(1)
 
 
 if scheduler:

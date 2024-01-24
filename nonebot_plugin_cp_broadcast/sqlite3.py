@@ -298,7 +298,7 @@ async def returnChangeInfo():
     global cursor, conn
 
     cursor.execute('''
-        SELECT CF_User_info.handle, rating, CF_User_status.id, remarks, broadcast_time
+        SELECT CF_User_info.handle, rating, CF_User_status.id, remarks, broadcast_time, contestId
         FROM CF_User_info, CF_User_status, CF_User_remarks 
         WHERE CF_User_info.handle=CF_User_status.handle and CF_User_info.handle=CF_User_remarks.handle
     ''')
@@ -309,6 +309,7 @@ async def returnChangeInfo():
         submission_id = row[2]
         remarks = row[3]
         broadcast_time = int(row[4])
+        contestId = int(row[5])
 
         Info = await CF_UserInfo.getByHttp(handle)
         Status = await CF_UserStatus.getByHttp(handle)
@@ -324,7 +325,7 @@ async def returnChangeInfo():
         if (Status is not None and Status.id != submission_id and
                 (int(time.time()) - broadcast_time >= 7200) ):
             cursor.execute('update CF_User_remarks set broadcast_time=? where handle=?', (int(time.time()), handle))
-            Users['cfOnline'].append({'handle': handle, 'remarks' : remarks})
+            Users['cfOnline'].append({'handle': handle, 'remarks' : remarks, 'contestId': contestId})
         # -----
 
         if Info is not None:
