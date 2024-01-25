@@ -325,7 +325,7 @@ async def returnChangeInfo():
         if (Status is not None and Status.id != submission_id and
                 (int(time.time()) - broadcast_time >= 7200) ):
             cursor.execute('update CF_User_remarks set broadcast_time=? where handle=?', (int(time.time()), handle))
-            Users['cfOnline'].append({'handle': handle, 'remarks' : remarks, 'contestId': contestId})
+            Users['cfOnline'].append({'handle': handle, 'remarks' : remarks, 'contestId': Status.contestId})
         # -----
 
         if Info is not None:
