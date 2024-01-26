@@ -13,10 +13,11 @@ headers = {
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
 nc = []
 
+
 async def get_data_nc() -> bool:
     global nc
     url = 'https://ac.nowcoder.com/acm/calendar/contest'
-    num = 0 #爬取次数,最大为3
+    num = 0  # 爬取次数,最大为3
     while num < 3:
         try:
             date = str(datetime.datetime.now().year) + ' - ' + str(datetime.datetime.now().month)
@@ -26,19 +27,19 @@ async def get_data_nc() -> bool:
                 'month': date,
                 '_': second
             }
-            if(len(nc) > 0):
+            if (len(nc) > 0):
                 nc.clear()
-            
+
             async with AsyncClient() as client:
                 r = await client.get(url, headers=headers, params=params, timeout=20)
-            
+
             r = r.json()
-            second2 = int(float(second)*1000)
-            if r['msg'] == "OK" and r['code'] == 0 :
+            second2 = int(float(second) * 1000)
+            if r['msg'] == "OK" and r['code'] == 0:
                 for data in r["data"]:
                     if data["startTime"] >= second2:
                         contest_name = data["contestName"]
-                        contest_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(data['startTime']/1000))
+                        contest_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(data['startTime'] / 1000))
                         contest_url = data["link"]
                         nc.append([contest_name, contest_time, contest_url])
                 return True
@@ -56,8 +57,8 @@ async def ans_nc() -> str:
         await get_data_nc()
     if len(nc) == 0:
         return f'突然出错了，稍后再试哦~'
-    #second = '{:.3f}'.format(time.time())
-    #second2 = int(float(second)*1000)
+    # second = '{:.3f}'.format(time.time())
+    # second2 = int(float(second)*1000)
     msg = ''
     n = 0
     for data in nc:
@@ -69,7 +70,10 @@ async def ans_nc() -> str:
             break
     return f"找到最近的 {n} 场牛客比赛为：\n" + msg
 
-nc_matcher = on_fullmatch(('牛客', 'nc'),priority=70,block=True)
+
+nc_matcher = on_fullmatch(('牛客', 'nc'), priority=70, block=True)
+
+
 @nc_matcher.handle()
 async def _():
     msg = await ans_nc()

@@ -84,17 +84,19 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 在 nonebot2 项目的`.env`文件中添加下表中的必填配置
 
-| 配置项 | 必填 | 默认值 |                                      说明                                      |
-|:-----:|:----:|:----:|:----------------------------------------------------------------------------:|
-| cp_broadcast_list | 否 | [ ] |                      开启早晨自动播报今日比赛的群聊，填 QQ 群号，注意以字符串形式填入                      |
-| cp_broadcast_botname | 否 | "bot" |                    填入你 bot 的名字，在 `help` 指令下会使用到你的 bot 的名字                    |
-| cp_broadcast_time | 否 | {"hour":"7", "minute":"20"} |             每日在群聊播报比赛信息的时间，默认是早上 7 点 20，你可以在配置文件中按默认值格式修改成你想要的时间             |
-| cp_broadcast_updatetime | 否 | {"hour":"0", "minute":"0"} |              每天自动更新比赛数据的时间，默认是 0 点 0 分，你可以在配置文件中按默认值格式修改成你想要的时间              |
-| cp_broadcast_cf_list | 否 | [ ] |                   开启 Codeforces 播报功能的群聊，cf监视的相关功能只在指定群聊里发送                   |
-| cp_broadcast_cf_interval | 否 | 10 | 更新 Codeforces 监视信息的时间间隙，默认为 10 分钟（不建议设置太短，可能会对服务器造成比较大的压力。另外监视人数多的话间隙尽量加长一点） |
+|           配置项            | 必填 |                     默认值                     |                                      说明                                      |
+|:------------------------:|:----:|:-------------------------------------------:|:----------------------------------------------------------------------------:|
+|    cp_broadcast_path     | 否 | get_data_dir("nonebot_plugin_cp_broadcast") |                        数据存储路径定义，用户不定义则由localstore插件确定                        |
+|    cp_broadcast_list     | 否 |                     [ ]                     |                      开启早晨自动播报今日比赛的群聊，填 QQ 群号，注意以字符串形式填入                      |
+|   cp_broadcast_botname   | 否 |                    "bot"                    |                    填入你 bot 的名字，在 `help` 指令下会使用到你的 bot 的名字                    |
+|    cp_broadcast_time     | 否 |         {"hour":"7", "minute":"20"}         |             每日在群聊播报比赛信息的时间，默认是早上 7 点 20，你可以在配置文件中按默认值格式修改成你想要的时间             |
+| cp_broadcast_updatetime  | 否 |         {"hour":"0", "minute":"0"}          |              每天自动更新比赛数据的时间，默认是 0 点 0 分，你可以在配置文件中按默认值格式修改成你想要的时间              |
+|   cp_broadcast_cf_list   | 否 |                     [ ]                     |                   开启 Codeforces 播报功能的群聊，cf监视的相关功能只在指定群聊里发送                   |
+| cp_broadcast_cf_interval | 否 |                     10                      | 更新 Codeforces 监视信息的时间间隙，默认为 10 分钟（不建议设置太短，可能会对服务器造成比较大的压力。另外监视人数多的话间隙尽量加长一点） |
 
 就像这样：
 ```
+cp_broadcast_path="data/cp_broadcast"
 cp_broadcast_list=["xxxxxxxx"]
 cp_broadcast_botname="bot"
 cp_broadcast_time={"hour":"7", "minute":"20"}
