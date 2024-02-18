@@ -38,7 +38,7 @@ async def get_data_nc() -> bool:
             if r['msg'] == "OK" and r['code'] == 0:
                 for data in r["data"]:
                     if data["startTime"] >= second2:
-                        contest_name = data["contestName"]
+                        contest_name = str(data["contestName"]).replace('&ldquo;', '“').replace('&rdquo;', '”')
                         contest_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(data['startTime'] / 1000))
                         contest_url = data["link"]
                         nc.append([contest_name, contest_time, contest_url])

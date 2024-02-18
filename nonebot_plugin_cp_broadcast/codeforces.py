@@ -5,7 +5,7 @@ from nonebot.adapters.onebot.v11.message import Message
 from nonebot.adapters.onebot.v11 import Bot, PrivateMessageEvent, GroupMessageEvent
 from nonebot.params import CommandArg
 from nonebot.rule import to_me
-from .sqlite3 import *
+from .aiosqlite import *
 import asyncio
 
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
@@ -49,7 +49,7 @@ async def ans_cf() -> str:
     for each in cf:
         msg += '比赛名称：' + each[0] + '\n' \
                + '比赛时间：' + each[1] + '\n' \
-               + '比赛链接' + each[2]
+               + '比赛链接：' + each[2]
         tot += 1
         if (tot != 3):
             msg += '\n'

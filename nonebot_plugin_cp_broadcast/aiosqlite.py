@@ -2,97 +2,109 @@ from .config import (cp_broadcast_path, cf_user_info_baseurl,
                      cf_user_status_baseurl, cf_user_rating_baseurl)
 from nonebot.log import logger
 import sqlite3
+import aiosqlite
 import json
 import datetime
 import time
 from httpx import AsyncClient
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 import asyncio
+from nonebot import get_driver
 
-if not cp_broadcast_path.exists():
-    cp_broadcast_path.mkdir(parents=True, exist_ok=True)
+# 激活驱动器
+driver = get_driver()
 
-conn = sqlite3.connect(cp_broadcast_path / 'data.db')
-cursor = conn.cursor()
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS CF_User_info (
-        handle TEXT PRIMARY KEY,   
-        contribution INTEGER,       
-        'rank' TEXT,               
-        rating INTEGER,            
-        maxRank TEXT,              
-        maxRanting INTEGER,        
-        lastOnlineTimeSeconds INTEGER, 
-        friendOfCount INTEGER,     
-        avatar TEXT            
-    )
-"""
-               )
-# codeforces' username
-# User contribution.
-# User rank, String.
-# 现在的rating分
-# 最高的rank
-# 最高的rating分
-# 上次在线时间
-# The user's friend count
-# 头像链接
-
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS CF_User_status (  
-        handle TEXT PRIMARY KEY,   
-        id INTEGER,                
-        contestId INTEGER,         
-        programmingLanguage TEXT,  
-        passedTestCount INTEGER,   
-        timeConsumedMillis INTEGER, 
-        memoryConsumedBytes INTEGER 
-        
-    )
-"""
-               )
-# 记录user的submission表
-# codeforces' username
-# one submission's id.
-# 比赛的id
-# 程序所用语言
-# 通过的数据组数
-# Maximum time in milliseconds, consumed by solution for one test.
-# Maximum memory in bytes, consumed by solution for one test.
+conn: aiosqlite.Connection
+cursor: aiosqlite.Cursor
 
 
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS CF_User_rating (  
-        handle TEXT PRIMARY KEY,   
-        contestId INTEGER,         
-        contestName TEXT,          
-        'rank' INTEGER,            
-        oldRating INTEGER,         
-        newRating INTEGER          
-    )
-"""
-               )
+@driver.on_startup
+async def _on_startup():
+    if not cp_broadcast_path.exists():
+        cp_broadcast_path.mkdir(parents=True, exist_ok=True)
 
-# 记录user的rating 变化记录，只记录最后一条
-# codeforces' username
-# contest's id.
-# 比赛的名称
-# 比赛排名
-# 变化前排名
-# 变化后排名
+    global conn, cursor
+    conn = await aiosqlite.connect(cp_broadcast_path / 'data.db')
+    cursor = await conn.cursor()
+    await cursor.execute("""
+        CREATE TABLE IF NOT EXISTS CF_User_info (
+            handle TEXT PRIMARY KEY,   
+            contribution INTEGER,       
+            'rank' TEXT,               
+            rating INTEGER,            
+            maxRank TEXT,              
+            maxRanting INTEGER,        
+            lastOnlineTimeSeconds INTEGER, 
+            friendOfCount INTEGER,     
+            avatar TEXT            
+        )
+    """
+                         )
+    # codeforces' username
+    # User contribution.
+    # User rank, String.
+    # 现在的rating分
+    # 最高的rank
+    # 最高的rating分
+    # 上次在线时间
+    # The user's friend count
+    # 头像链接
 
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS CF_User_remarks (  
-        handle TEXT PRIMARY KEY,   
-        remarks TEXT,
-        broadcast_time INTEGER    
-    )
-"""
-               )
+    await cursor.execute("""
+        CREATE TABLE IF NOT EXISTS CF_User_status (  
+            handle TEXT PRIMARY KEY,   
+            id INTEGER,                
+            contestId INTEGER,         
+            programmingLanguage TEXT,  
+            passedTestCount INTEGER,   
+            timeConsumedMillis INTEGER, 
+            memoryConsumedBytes INTEGER 
+            
+        )
+    """
+                         )
+    # 记录user的submission表
+    # codeforces' username
+    # one submission's id.
+    # 比赛的id
+    # 程序所用语言
+    # 通过的数据组数
+    # Maximum time in milliseconds, consumed by solution for one test.
+    # Maximum memory in bytes, consumed by solution for one test.
 
+    await cursor.execute("""
+        CREATE TABLE IF NOT EXISTS CF_User_rating (  
+            handle TEXT PRIMARY KEY,   
+            contestId INTEGER,         
+            contestName TEXT,          
+            'rank' INTEGER,            
+            oldRating INTEGER,         
+            newRating INTEGER          
+        )
+    """
+                         )
 
-# user的id
-# 该user的备注名
+    # 记录user的rating 变化记录，只记录最后一条
+    # codeforces' username
+    # contest's id.
+    # 比赛的名称
+    # 比赛排名
+    # 变化前排名
+    # 变化后排名
+
+    await cursor.execute("""
+        CREATE TABLE IF NOT EXISTS CF_User_remarks (  
+            handle TEXT PRIMARY KEY,   
+            remarks TEXT,
+            broadcast_time INTEGER    
+        )
+    """
+                         )
+
+    # user的id
+    # 该user的备注名
+    # 更新时间
+
 
 class CF_UserInfo:
     def __init__(self, handle, contribution, rank, rating, maxRank, maxRating,
@@ -130,14 +142,13 @@ class CF_UserInfo:
                 Info = CF_UserInfo(
                     handle=result["handle"],
                     contribution=result["contribution"],
-                    rank=result["rank"] if result["rank"] is not None else "null",
-                    rating=result["rating"] if result["rating"] is not None else 0,
-                    maxRank=result["maxRank"] if result["maxRank"] is not None else "null",
-                    maxRating=result["maxRating"] if result["maxRating"] is not None else 0,
-                    lastOnlineTimeSeconds=result["lastOnlineTimeSeconds"] if result[
-                                                                                 "lastOnlineTimeSeconds"] is not None else 0,
-                    friendOfCount=result["friendOfCount"] if result["friendOfCount"] is not None else 0,
-                    avatar=result["avatar"] if result["avatar"] is not None else "404"
+                    rank=result["rank"] if "rank" in result else "null",
+                    rating=result["rating"] if "rating" in result else 0,
+                    maxRank=result["maxRank"] if "maxRank" in result else "null",
+                    maxRating=result["maxRating"] if "maxRating" in result else 0,
+                    lastOnlineTimeSeconds=result["lastOnlineTimeSeconds"] if "lastOnlineTimeSeconds" in result else 0,
+                    friendOfCount=result["friendOfCount"] if "friendOfCount" in result else 0,
+                    avatar=result["avatar"] if "avatar" in result else "404"
                 )
 
                 return Info
@@ -179,11 +190,14 @@ class CF_UserStatus:
             logger.warning('请求失败')
             return None
 
+        if len(data["result"]) == 0:
+            return None
+
         result = data["result"][0]
         Status = CF_UserStatus(
             handle=handle,
             id=result["id"],
-            contestId=result["contestId"] if result["contestId"] is not None else 0,
+            contestId=result["contestId"] if "contestId" in result else 0,
             programmingLanguage=result["programmingLanguage"],
             passedTestCount=result["passedTestCount"],
             timeConsumedMillis=result["timeConsumedMillis"],
@@ -224,7 +238,11 @@ class CF_UserRating:
             logger.warning('请求失败')
             return None
 
+        if len(data["result"]) == 0:
+            return None
+
         result = data["result"][-1]
+
         Rating = CF_UserRating(
             handle=result["handle"],
             contestId=result["contestId"],
@@ -235,6 +253,7 @@ class CF_UserRating:
         )
 
         return Rating
+
 
 class CF_UserRemarks:
     def __init__(self, handle: str, remarks: str, broadcast_time: int):
@@ -256,23 +275,24 @@ async def addUser(id: str):
     status = True
 
     if Info is not None:
-        cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', Info.returnTuple())
+        await cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                             Info.returnTuple())
     else:
         status = False
 
     if Status is not None:
-        cursor.execute('INSERT OR REPLACE INTO CF_User_status VALUES (?, ?, ?, ?, ?, ?, ?)', Status.returnTuple())
-    else:
-        status = False
+        await cursor.execute('INSERT OR REPLACE INTO CF_User_status VALUES (?, ?, ?, ?, ?, ?, ?)', Status.returnTuple())
+    # else:
+    #     status = False
 
     if Rating is not None:
-        cursor.execute('INSERT OR REPLACE INTO CF_User_rating VALUES (?, ?, ?, ?, ?, ?)', Rating.returnTuple())
-    else:
-        status = False
+        await cursor.execute('INSERT OR REPLACE INTO CF_User_rating VALUES (?, ?, ?, ?, ?, ?)', Rating.returnTuple())
+    # else:
+    #     status = False
 
-    cursor.execute('INSERT OR REPLACE INTO CF_User_remarks VALUES (?, ?, ?)', Remarks.returnTuple())
+    await cursor.execute('INSERT OR REPLACE INTO CF_User_remarks VALUES (?, ?, ?)', Remarks.returnTuple())
 
-    conn.commit()
+    await conn.commit()
 
     return status
 
@@ -281,11 +301,11 @@ async def removeUser(id: str):
     global cursor, conn
 
     cfid = id.lower()
-    cursor.execute('DELETE FROM CF_User_info WHERE handle = ?', (cfid,))
-    cursor.execute('DELETE FROM CF_User_status WHERE handle = ?', (cfid,))
-    cursor.execute('DELETE FROM CF_User_rating WHERE handle = ?', (cfid,))
-    cursor.execute('DELETE FROM CF_User_remarks WHERE handle = ?', (cfid,))
-    conn.commit()
+    await cursor.execute('DELETE FROM CF_User_info WHERE handle = ?', (cfid,))
+    await cursor.execute('DELETE FROM CF_User_status WHERE handle = ?', (cfid,))
+    await cursor.execute('DELETE FROM CF_User_rating WHERE handle = ?', (cfid,))
+    await cursor.execute('DELETE FROM CF_User_remarks WHERE handle = ?', (cfid,))
+    await conn.commit()
 
     if cursor.rowcount == 0:
         return False
@@ -297,19 +317,18 @@ async def returnChangeInfo():
     Users = {'ratingChange': [], 'cfOnline': []}
     global cursor, conn
 
-    cursor.execute('''
-        SELECT CF_User_info.handle, rating, CF_User_status.id, remarks, broadcast_time, contestId
+    await cursor.execute('''
+        SELECT CF_User_info.handle, rating, CF_User_status.id, remarks, broadcast_time
         FROM CF_User_info, CF_User_status, CF_User_remarks 
         WHERE CF_User_info.handle=CF_User_status.handle and CF_User_info.handle=CF_User_remarks.handle
     ''')
-    RS = cursor.fetchall()
+    RS = await cursor.fetchall()
     for row in RS:
         handle = row[0]
         rating = row[1]
         submission_id = row[2]
         remarks = row[3]
         broadcast_time = int(row[4])
-        contestId = int(row[5])
 
         Info = await CF_UserInfo.getByHttp(handle)
         Status = await CF_UserStatus.getByHttp(handle)
@@ -319,34 +338,37 @@ async def returnChangeInfo():
         ## 分数变化，以json形式存入
         if Rating is not None and Rating.newRating != rating:
             Users['ratingChange'].append(
-                {'handle': handle, 'remarks' : remarks,'oldRating': Rating.oldRating, 'newRating': Rating.newRating})
+                {'handle': handle, 'remarks': remarks, 'oldRating': Rating.oldRating, 'newRating': Rating.newRating})
 
         ## cf上线提醒，有交题，且两小时内没播报说明在卷
         if (Status is not None and Status.id != submission_id and
-                (int(time.time()) - broadcast_time >= 7200) ):
-            cursor.execute('update CF_User_remarks set broadcast_time=? where handle=?', (int(time.time()), handle))
-            Users['cfOnline'].append({'handle': handle, 'remarks' : remarks, 'contestId': Status.contestId})
+                (int(time.time()) - broadcast_time >= 7200)):
+            await cursor.execute('update CF_User_remarks set broadcast_time=? where handle=?',
+                                 (int(time.time()), handle))
+            Users['cfOnline'].append({'handle': handle, 'remarks': remarks, 'contestId': Status.contestId})
         # -----
 
         if Info is not None:
-            cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', Info.returnTuple())
+            await cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                                 Info.returnTuple())
 
         if Status is not None:
-            cursor.execute('INSERT OR REPLACE INTO CF_User_status VALUES (?, ?, ?, ?, ?, ?, ?)', Status.returnTuple())
+            await cursor.execute('INSERT OR REPLACE INTO CF_User_status VALUES (?, ?, ?, ?, ?, ?, ?)',
+                                 Status.returnTuple())
 
         if Rating is not None:
-            cursor.execute('INSERT OR REPLACE INTO CF_User_rating VALUES (?, ?, ?, ?, ?, ?)', Rating.returnTuple())
+            await cursor.execute('INSERT OR REPLACE INTO CF_User_rating VALUES (?, ?, ?, ?, ?, ?)',
+                                 Rating.returnTuple())
 
-        conn.commit()
+        await conn.commit()
 
     return Users
 
 
 async def returnBindList():
-    list_num = 10
     global cursor, conn
-    cursor.execute('SELECT handle FROM CF_User_info')
-    data = cursor.fetchall()
+    await cursor.execute('SELECT handle FROM CF_User_info')
+    data = await cursor.fetchall()
     if data is None:
         return f'当前无监视选手'
 
@@ -354,8 +376,8 @@ async def returnBindList():
 
     for curTuple in data:
         handle = str(curTuple[0])
-        cursor.execute('SELECT remarks FROM CF_User_remarks WHERE handle=?', (handle,))
-        data = cursor.fetchone()
+        await cursor.execute('SELECT remarks FROM CF_User_remarks WHERE handle=?', (handle,))
+        data = await cursor.fetchone()
         if data is None:
             remarks = "null"
         else:
@@ -383,7 +405,7 @@ async def queryUser(id: str):
         results = data['result']
 
         for result in results:
-            avatar_url = result['avatar'] if result["avatar"] is not None else "null"
+            avatar_url = result['avatar'] if "avatar" in result else "null"
             name = result['handle']
             rank = result['rank'] if 'rank' in result else 'Unrated'
             contest_rating = result['rating'] if 'rating' in result else '0'
@@ -414,8 +436,8 @@ async def queryUser(id: str):
 
 async def returnRanklist():
     global cursor, conn
-    cursor.execute('SELECT handle, rating FROM CF_User_info ORDER BY rating DESC')
-    data = cursor.fetchall()
+    await cursor.execute('SELECT handle, rating FROM CF_User_info ORDER BY rating DESC')
+    data = await cursor.fetchall()
     return data
 
 
@@ -423,8 +445,10 @@ async def modifyRemarks(cf_id: str, cf_remarks: str):
     global cursor, conn
     cfid = cf_id.lower()
 
-    cursor.execute(f"insert or replace into CF_User_remarks(handle, remarks) select handle, '{cf_remarks}' from CF_User_info where handle=?", (cfid,))
-    conn.commit()
+    await cursor.execute(
+        f"insert or replace into CF_User_remarks(handle, remarks) select handle, '{cf_remarks}' from CF_User_info where handle=?",
+        (cfid,))
+    await conn.commit()
     if cursor.rowcount == 0:
         return False
     return True

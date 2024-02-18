@@ -2,7 +2,7 @@ from .config import Config, cp_broadcast_config
 from .codeforces import *
 from .nowcoder import *
 from .atcoder import *
-from .sqlite3 import *
+from .aiosqlite import *
 import datetime
 from datetime import timedelta
 from nonebot.plugin import on_fullmatch
