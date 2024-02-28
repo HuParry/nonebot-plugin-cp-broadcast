@@ -60,7 +60,7 @@ logger.opt(colors=True).info(
 async def ans_today():  # today
     global cf
     global atc
-    global nc
+    global nc, nc_status
     msg = ''
     n = 0
     today = datetime.datetime.now().date()
@@ -80,7 +80,7 @@ async def ans_today():  # today
                 break
     n = 0
     msg2 = ''
-    if len(nc) == 0:
+    if not nc_status:
         await get_data_nc()
     if len(nc) > 0:
         # second = '{:.3f}'.format(time.time())
@@ -121,7 +121,7 @@ async def ans_today():  # today
 async def ans_next():
     global cf
     global atc
-    global nc
+    global nc, nc_status
     tomorrow = datetime.datetime.now().date() + timedelta(days=1)
     msg = ''
     flag = 0
@@ -145,7 +145,7 @@ async def ans_next():
     flag = 0
     msg2 = ''
 
-    if len(nc) == 0:
+    if not nc_status:
         await get_data_nc()
     if len(nc) > 0:
         for data in nc:

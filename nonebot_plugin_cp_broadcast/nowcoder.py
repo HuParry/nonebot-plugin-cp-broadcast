@@ -12,10 +12,11 @@ headers = {
 
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
 nc = []
+nc_status: bool = False
 
 
 async def get_data_nc() -> bool:
-    global nc
+    global nc, nc_status
     url = 'https://ac.nowcoder.com/acm/calendar/contest'
     num = 0  # 爬取次数,最大为3
     while num < 3:
@@ -36,6 +37,7 @@ async def get_data_nc() -> bool:
             r = r.json()
             second2 = int(float(second) * 1000)
             if r['msg'] == "OK" and r['code'] == 0:
+                nc_status = True
                 for data in r["data"]:
                     if data["startTime"] >= second2:
                         contest_name = str(data["contestName"]).replace('&ldquo;', '“').replace('&rdquo;', '”')
@@ -44,6 +46,7 @@ async def get_data_nc() -> bool:
                         nc.append([contest_name, contest_time, contest_url])
                 return True
             else:
+                nc_status = False
                 return False
         except:
             num += 1
@@ -52,11 +55,15 @@ async def get_data_nc() -> bool:
 
 
 async def ans_nc() -> str:
-    global nc
-    if len(nc) == 0:
+    global nc, nc_status
+    if not nc_status:
         await get_data_nc()
-    if len(nc) == 0:
+    if not nc_status:
         return f'突然出错了，稍后再试哦~'
+
+    if len(nc) == 0 :
+        return f'牛客这个月没有比赛啦，下个月再来查吧！'
+
     # second = '{:.3f}'.format(time.time())
     # second2 = int(float(second)*1000)
     msg = ''
