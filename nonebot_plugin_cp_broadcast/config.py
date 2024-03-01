@@ -1,5 +1,7 @@
+import time
+
 from pydantic import BaseModel, Extra
-from typing import List, Dict
+from typing import List, Dict, TypedDict
 from pathlib import Path
 
 from nonebot import get_driver, require
@@ -17,6 +19,22 @@ class Config(BaseModel, extra=Extra.ignore):
     cp_broadcast_updatetime: Dict[str, str] = {"hour": "0", "minute": "0"}
     cp_broadcast_cf_list: List[str] = []
     cp_broadcast_cf_interval: int = 10
+
+
+class ContestType:
+    def __init__(self, contest_name: str, contest_time: int, contest_length: int):
+        self.contest_name = contest_name
+        self.contest_time = contest_time
+        self.contest_length = contest_length
+
+    def get_name(self) -> str:
+        return self.contest_name
+
+    def get_time(self) -> str:
+        return time.strftime("%Y-%m-%d %H:%M", time.localtime(self.contest_time))
+
+    def get_length(self) -> str:
+        return f"{int(self.contest_length / 60)}"
 
 
 cf_user_info_baseurl = 'https://codeforces.com/api/user.info?handles='

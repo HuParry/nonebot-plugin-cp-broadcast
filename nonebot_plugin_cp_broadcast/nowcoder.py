@@ -1,78 +1,136 @@
 import datetime
 import time
-from httpx import AsyncClient
+
+from json import loads
+from html import unescape
+from bs4 import BeautifulSoup, NavigableString, ResultSet, Tag
+from httpx import AsyncClient, Response
+from httpx._types import URLTypes, ProxiesTypes
+
 from nonebot.plugin import on_fullmatch
 from fake_useragent import FakeUserAgent
 from nonebot.adapters.onebot.v11.message import Message
 import asyncio
+from typing import Any, Dict, Literal, Optional, TypedDict, List, Union
+
+from .config import ContestType
 
 headers = {
     'user-agent': FakeUserAgent().random
 }
 
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
-nc = []
-nc_status: bool = False
+nc: List[ContestType] = []
+
+async def req_get(url: URLTypes, proxies: Optional[ProxiesTypes] = None) -> str:
+    """
+    生成一个异步的GET请求
+
+    Args:
+        url (URLTypes): 对应的URL
+
+    Returns:
+        str: URL对应的HTML
+    """
+    async with AsyncClient(proxies=proxies) as client:
+        r: Response = await client.get(url)
+    return r.content.decode("utf-8")
+
+async def get_data_nc(url: str = "https://ac.nowcoder.com/acm/contest/vip-index") -> List[ContestType]:
+    """
+    处理牛客的竞赛列表
+
+    Args:
+        content (str): HTML
+
+    Returns:
+        list: 竞赛列表
+    """
+
+    global nc
+    content = await req_get(url)
+    soup = BeautifulSoup(content, 'html.parser')
+    find_item: Union[Tag, NavigableString, None] = soup.find('div', class_='platform-mod js-current')
+    if not isinstance(find_item, Tag):
+        return nc
+    datatable: ResultSet = find_item.find_all('div', class_='platform-item js-item')
+
+    for contest in datatable:
+        cdata: Dict[str, Any] = loads(unescape(contest.get("data-json")))
+        if cdata:
+            nc.append(ContestType(cdata['contestName'], int(cdata["contestStartTime"] / 1000), cdata["contestDuration"] / 1000))
+
+    return nc
 
 
-async def get_data_nc() -> bool:
-    global nc, nc_status
-    url = 'https://ac.nowcoder.com/acm/calendar/contest'
-    num = 0  # 爬取次数,最大为3
-    while num < 3:
-        try:
-            date = str(datetime.datetime.now().year) + ' - ' + str(datetime.datetime.now().month)
-            second = '{:.3f}'.format(time.time())
-            params = {
-                'token': '',
-                'month': date,
-                '_': second
-            }
-            if (len(nc) > 0):
-                nc.clear()
+async def get_today_data() -> List[ContestType]:
+    """
 
-            async with AsyncClient() as client:
-                r = await client.get(url, headers=headers, params=params, timeout=20)
+    :return: 返回今天的牛客比赛
+    """
+    global nc
+    contest_list: List[ContestType] = []
+    if len(nc) == 0:
+        await get_data_nc()
 
-            r = r.json()
-            second2 = int(float(second) * 1000)
-            if r['msg'] == "OK" and r['code'] == 0:
-                nc_status = True
-                for data in r["data"]:
-                    if data["startTime"] >= second2:
-                        contest_name = str(data["contestName"]).replace('&ldquo;', '“').replace('&rdquo;', '”')
-                        contest_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(data['startTime'] / 1000))
-                        contest_url = data["link"]
-                        nc.append([contest_name, contest_time, contest_url])
-                return True
-            else:
-                nc_status = False
-                return False
-        except:
-            num += 1
-            await asyncio.sleep(2)
-    return False
+    if len(nc) > 0:
+        # second = '{:.3f}'.format(time.time())
+        # second2 = int(float(second)*1000)
+
+        today = datetime.datetime.now().date()
+        for each in nc:
+            cur_time = datetime.datetime.strptime(str(each.get_time()), "%Y-%m-%d %H:%M").date()
+            if cur_time == today:
+                contest_list.append(each)
+
+    return contest_list
+
+
+async def get_next_data() -> List[ContestType]:
+    """
+
+    :return: 返回接下来的比赛
+    """
+    global nc
+    msg2 = ''
+    n = 0
+    contest_list: List[ContestType] = []
+    if len(nc) == 0:
+        await get_data_nc()
+
+    if len(nc) > 0:
+        # second = '{:.3f}'.format(time.time())
+        # second2 = int(float(second)*1000)
+
+        tomorrow = datetime.datetime.now().date() + datetime.timedelta(days=1)
+        for each in nc:
+            cur_time = datetime.datetime.strptime(str(each.get_time()), "%Y-%m-%d %H:%M").date()
+            if cur_time >= tomorrow:
+                contest_list.append(each)
+
+    return contest_list
 
 
 async def ans_nc() -> str:
-    global nc, nc_status
-    if not nc_status:
-        await get_data_nc()
-    if not nc_status:
-        return f'突然出错了，稍后再试哦~'
+    """
 
-    if len(nc) == 0 :
-        return f'牛客这个月没有比赛啦，下个月再来查吧！'
+    :return: 返回牛客比赛的信息
+    """
+    global nc
+    if len(nc) == 0:
+        await get_data_nc()
+    if len(nc) == 0:
+        return f'突然出错了，稍后再试哦~'
 
     # second = '{:.3f}'.format(time.time())
     # second2 = int(float(second)*1000)
     msg = ''
     n = 0
-    for data in nc:
+    for each in nc:
         n += 1
-        msg += "比赛名称：" + data[0] + '\n'
-        msg += "比赛时间：" + data[1] + '\n'
-        msg += "比赛链接：" + data[2] + '\n'
+        msg += "比赛名称：" + each.get_name() + '\n'
+        msg += "比赛时间：" + each.get_time() + '\n'
+        msg += "比赛时长：" + f'{each.get_length()}分钟' + '\n'
         if n == 3:
             break
     return f"找到最近的 {n} 场牛客比赛为：\n" + msg

@@ -1,15 +1,57 @@
 import time
+from datetime import timedelta
+
 from httpx import AsyncClient
 from nonebot.plugin import on_fullmatch, on_command
 from nonebot.adapters.onebot.v11.message import Message
 from nonebot.adapters.onebot.v11 import Bot, PrivateMessageEvent, GroupMessageEvent
 from nonebot.params import CommandArg
 from nonebot.rule import to_me
+from typing import List
 from .aiosqlite import *
+from .config import ContestType
 import asyncio
 
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
-cf = []
+cf: List[ContestType] = []
+
+
+async def get_today_data() -> List[ContestType]:
+    """
+
+    :return: 返回cf今天的比赛列表
+    """
+    global cf
+    today = datetime.datetime.now().date()
+    contest_list: List[ContestType] = []
+    if len(cf) == 0:
+        await get_data_cf()
+    if len(cf) > 0:
+        for each in cf:
+            cur_time = datetime.datetime.strptime(str(each.get_time()), "%Y-%m-%d %H:%M").date()
+            if cur_time == today:
+                contest_list.append(each)
+
+    return contest_list
+
+
+async def get_next_data() -> List[ContestType]:
+    """
+
+    :return: 返回cf接下来的比赛列表
+    """
+    global cf
+    tomorrow = datetime.datetime.now().date() + timedelta(days=1)
+    contest_list: List[ContestType] = []
+    if len(cf) == 0:
+        await get_data_cf()
+    if len(cf) > 0:
+        for each in cf:
+            cur_time = datetime.datetime.strptime(str(each.get_time()), "%Y-%m-%d %H:%M").date()
+            if cur_time >= tomorrow:
+                contest_list.append(each)
+
+    return contest_list
 
 
 async def get_data_cf() -> bool:
@@ -18,7 +60,7 @@ async def get_data_cf() -> bool:
     num = 0  # 尝试获取的次数，最多尝试三次
     while num < 3:
         try:
-            if (len(cf) > 0):
+            if len(cf) > 0:
                 cf.clear()
             async with AsyncClient() as client:
                 r = await client.get(url, timeout=10)
@@ -26,10 +68,10 @@ async def get_data_cf() -> bool:
                 if each['phase'] != "BEFORE":
                     break
                 contest_name = each['name']
-                contest_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(each['startTimeSeconds']))
-                id = each['id']
-                contest_url = f'https://codeforces.com/contest/{id}'
-                cf.append([contest_name, contest_time, contest_url])  # 从左到右分别为比赛名称、比赛时间、比赛链接
+                contest_time = int(each['startTimeSeconds'])
+                contest_length = int(each['durationSeconds'])
+
+                cf.append(ContestType(contest_name, contest_time, contest_length))
             cf.reverse()
             return True
         except:
@@ -47,11 +89,11 @@ async def ans_cf() -> str:
     msg = ''
     tot = 0
     for each in cf:
-        msg += '比赛名称：' + each[0] + '\n' \
-               + '比赛时间：' + each[1] + '\n' \
-               + '比赛链接：' + each[2]
+        msg += '比赛名称：' + each.get_name() + '\n' \
+               + '比赛时间：' + each.get_time() + '\n' \
+               + '比赛时长：' + f'{each.get_length()}分钟'
         tot += 1
-        if (tot != 3):
+        if tot != 3:
             msg += '\n'
         else:
             break

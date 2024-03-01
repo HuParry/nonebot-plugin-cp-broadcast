@@ -58,58 +58,47 @@ logger.opt(colors=True).info(
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
 
 async def ans_today():  # today
-    global cf
-    global atc
-    global nc, nc_status
+    cf_list = await codeforces.get_today_data()
+    nc_list = await nowcoder.get_today_data()
+    atc_list = await atcoder.get_today_data()
+
     msg = ''
     n = 0
-    today = datetime.datetime.now().date()
-    if len(cf) == 0:
-        await get_data_cf()
-    if len(cf) > 0:
-        for each in cf:
-            cur_time = datetime.datetime.strptime(str(each[1]), "%Y-%m-%d %H:%M").date()
-            if cur_time == today:
-                if n == 0:
-                    msg += '◉cf比赛：\n'
-                msg += '比赛名称：' + each[0] + '\n' \
-                       + '比赛时间：' + each[1] + '\n' \
-                                                 f'比赛链接：' + each[2] + '\n'
-                n = 1
-            else:
+    if len(cf_list) > 0:
+        for each in cf_list:
+            if n == 0:
+                msg += '◉cf比赛：\n'
+            msg += '比赛名称：' + each.get_name() + '\n' \
+                   + '比赛时间：' + each.get_time() + '\n' \
+                    f'比赛时长：' + each.get_length() + '分钟\n'
+            n += 1
+            if n >= 2:
                 break
     n = 0
     msg2 = ''
-    if not nc_status:
-        await get_data_nc()
-    if len(nc) > 0:
+
+    if len(nc_list) > 0:
         # second = '{:.3f}'.format(time.time())
         # second2 = int(float(second)*1000)
-        for data in nc:
-            cur_time = datetime.datetime.strptime(str(data[1]), "%Y-%m-%d %H:%M").date()
-            if cur_time == today:
-                if n == 0:
-                    msg2 += '◉牛客比赛：\n'
-                    n = 1
-                msg2 += "比赛名称：" + data[0] + '\n'
-                msg2 += "比赛时间：" + data[1] + '\n'
-                msg2 += "比赛链接：" + data[2] + '\n'
-
+        for data in nc_list:
+            if n == 0:
+                msg2 += '◉牛客比赛：\n'
+            msg2 += "比赛名称：" + data.get_name() + '\n'
+            msg2 += "比赛时间：" + data.get_time() + '\n'
+            msg2 += "比赛时长：" + data.get_length() + '分钟\n'
+            n += 1
+            if n >= 2:
+                break
     n = 0
     msg3 = ''
 
-    if len(atc) == 0:
-        await get_data_atc()
-
-    if len(atc) > 0:
-        for each in atc:
-            cur_time = datetime.datetime.strptime(str(each[1]), "%Y-%m-%d %H:%M").date()
-            if cur_time == today:
-                if n == 0:
-                    msg3 += '◉atc比赛：\n'
-                msg3 += '比赛名称：' + each[0] + '\n' \
-                        + '比赛时间：' + each[1] + '\n' \
-                        + '比赛链接：' + each[2] + '\n'
+    if len(atc_list) > 0:
+        for each in atc_list:
+            if n == 0:
+                msg3 += '◉atc比赛：\n'
+            msg3 += '比赛名称：' + each.get_name() + '\n' \
+                    + '比赛时间：' + each.get_time() + '\n' \
+                    + '比赛时长：' + each.get_length() + '分钟\n'
 
     if len(cf) == 0 and len(nc) == 0 and len(atc) == 0:
         return f'查询出错了，稍后再尝试哦~'
@@ -119,63 +108,48 @@ async def ans_today():  # today
 
 
 async def ans_next():
-    global cf
-    global atc
-    global nc, nc_status
+    cf_list = await codeforces.get_next_data()
+    nc_list = await nowcoder.get_next_data()
+    atc_list = await atcoder.get_next_data()
     tomorrow = datetime.datetime.now().date() + timedelta(days=1)
     msg = ''
-    flag = 0
     n = 0
-    if len(cf) == 0:
-        await get_data_cf()
-    if len(cf) > 0:
-        for each in cf:
-            cur_time = datetime.datetime.strptime(str(each[1]), "%Y-%m-%d %H:%M").date()
-            if cur_time >= tomorrow:
-                if flag == 0:
-                    msg += '◉cf比赛：\n'
-                    flag = 1
-                msg += '比赛名称：' + each[0] + '\n' \
-                       + '比赛时间：' + each[1] + '\n' \
-                       + '比赛链接：' + each[2] + '\n'
-                n += 1
+
+    if len(cf_list) > 0:
+        for each in cf_list:
+            if n == 0:
+                msg += '◉cf比赛：\n'
+            msg += '比赛名称：' + each.get_name() + '\n' \
+                   + '比赛时间：' + each.get_time() + '\n' \
+                   + '比赛时长：' + each.get_length() + '分钟\n'
+            n += 1
             if n >= 2:
                 break
     n = 0
-    flag = 0
     msg2 = ''
 
-    if not nc_status:
-        await get_data_nc()
-    if len(nc) > 0:
-        for data in nc:
-            cur_time = datetime.datetime.strptime(str(data[1]), "%Y-%m-%d %H:%M").date()
-            if cur_time >= tomorrow:
-                if flag == 0:
-                    msg2 += '◉牛客比赛：\n'
-                    flag = 1
-                msg2 += "比赛名称：" + data[0] + '\n'
-                msg2 += "比赛时间：" + data[1] + '\n'
-                msg2 += "比赛链接：" + data[2] + '\n'
-                n += 1
+    if len(nc_list) > 0:
+        for data in nc_list:
+            if n == 0:
+                msg2 += '◉牛客比赛：\n'
+            msg2 += "比赛名称：" + data.get_name() + '\n'
+            msg2 += "比赛时间：" + data.get_time() + '\n'
+            msg2 += "比赛时长：" + data.get_length() + '分钟\n'
+            n += 1
             if n >= 2:
                 break
 
+    n = 0
     msg3 = ''
-    flag = 0
 
-    if len(atc) == 0:
-        await get_data_atc()
-    if len(atc) > 0:
-        for each in atc:
-            cur_time = datetime.datetime.strptime(str(each[1]), "%Y-%m-%d %H:%M").date()
-            if cur_time >= tomorrow:
-                if flag == 0:
+    if len(atc_list) > 0:
+        for each in atc_list:
+                if n == 0:
                     msg3 += '◉atc比赛：\n'
-                    flag = 1
-                msg3 += '比赛名称：' + (each[0]) + '\n' \
-                        + '比赛时间：' + (each[1]) + '\n' \
-                        + '比赛链接：' + (each[2]) + '\n'
+                msg3 += '比赛名称：' + (each.get_name()) + '\n' \
+                        + '比赛时间：' + (each.get_time()) + '\n' \
+                        + '比赛时长：' + (each.get_length()) + '分钟\n'
+                n += 1
 
     if len(cf) == 0 and len(nc) == 0 and len(atc) == 0:
         return f'查询出错了，稍后再尝试哦~'
