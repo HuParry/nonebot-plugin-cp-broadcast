@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-cp-broadcast"
-version = "2.3.0"
+version = "2.3.1"
 description = "Codeforces、牛客、AtCoder平台比赛查询，ACMer 必备"
 authors = ["HuParry <hu_parry@qq.com>"]
 license = "MIT"
