@@ -6,8 +6,9 @@ from bs4 import BeautifulSoup
 from httpx import AsyncClient
 
 import requests
+
 atc = []
-url = f'https://atcoder.jp/contests/?lang=en'
+url = f'https://atcoder.jp/contests/?lang=jp'
 resp = requests.get(url=url, timeout=10.0)
 
 soup = \
@@ -15,11 +16,11 @@ soup = \
         0].find_all(
         'tbody')[0].find_all('td')
 
-
-
 ans1 = str(soup[1].contents[5].contents[0])
 
-url1 = re.findall(r'<td class="text-center">(.+?)</td>', str(soup[2]))[0]
+print(soup[1])
+
+url1 = 'https://atcoder.jp' + re.findall(r'<a href="(.+?)">', str(soup[1]))[0]
 
 ss = str(soup[0].contents[0].contents[0].contents[0]).replace('+0900', '')
 print(ss)
@@ -35,3 +36,5 @@ ans4 = str(datetime.datetime.strptime(ss1, '%Y-%m-%d %H:%M:%S') - datetime.timed
 ans4 = ans4[0:-3]
 atc.append([ans1, ans2, url1])
 atc.append([ans3, ans4, url2])
+
+print(atc)

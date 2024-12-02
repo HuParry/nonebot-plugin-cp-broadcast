@@ -14,6 +14,7 @@ import asyncio
 from typing import Any, Dict, Literal, Optional, TypedDict, List, Union
 
 from .config import ContestType
+from .utils import *
 
 headers = {
     'user-agent': FakeUserAgent().random
@@ -21,6 +22,7 @@ headers = {
 
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
 nc: List[ContestType] = []
+
 
 async def req_get(url: URLTypes, proxies: Optional[ProxiesTypes] = None) -> str:
     """
@@ -35,6 +37,7 @@ async def req_get(url: URLTypes, proxies: Optional[ProxiesTypes] = None) -> str:
     async with AsyncClient(proxies=proxies) as client:
         r: Response = await client.get(url)
     return r.content.decode("utf-8")
+
 
 async def get_data_nc(url: str = "https://ac.nowcoder.com/acm/contest/vip-index") -> List[ContestType]:
     """
@@ -57,8 +60,12 @@ async def get_data_nc(url: str = "https://ac.nowcoder.com/acm/contest/vip-index"
 
     for contest in datatable:
         cdata: Dict[str, Any] = loads(unescape(contest.get("data-json")))
+        id = unescape(contest.get("data-id"))
+        cdata["contestId"] = id
+        contest_url = f"https://ac.nowcoder.com/acm/contest/{cdata['contestId']}"
         if cdata:
-            nc.append(ContestType(cdata['contestName'], int(cdata["contestStartTime"] / 1000), cdata["contestDuration"] / 1000))
+            nc.append(ContestType(cdata['contestName'], int(cdata["contestStartTime"] / 1000),
+                                  contest_url, cdata["contestDuration"] / 1000))
 
     return nc
 
@@ -124,16 +131,14 @@ async def ans_nc() -> str:
 
     # second = '{:.3f}'.format(time.time())
     # second2 = int(float(second)*1000)
-    msg = ''
+    msg = []
     n = 0
     for each in nc:
         n += 1
-        msg += "比赛名称：" + each.get_name() + '\n'
-        msg += "比赛时间：" + each.get_time() + '\n'
-        msg += "比赛时长：" + f'{each.get_length()}分钟' + '\n'
+        msg.append(to_context(each))
         if n == 3:
             break
-    return f"找到最近的 {n} 场牛客比赛为：\n" + msg
+    return '\n'.join([f"找到最近的 {n} 场牛客比赛为：\n"] + msg)
 
 
 nc_matcher = on_fullmatch(('牛客', 'nc'), priority=70, block=True)

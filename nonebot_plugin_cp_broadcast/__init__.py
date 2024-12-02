@@ -1,8 +1,11 @@
-from .config import Config, cp_broadcast_config
+from nonebot.adapters.onebot.v11 import Event
+
+from .config import *
 from .codeforces import *
 from .nowcoder import *
 from .atcoder import *
 from .aiosqlite import *
+from .utils import *
 import datetime
 from datetime import timedelta
 from nonebot.plugin import on_fullmatch
@@ -62,49 +65,44 @@ async def ans_today():  # today
     nc_list = await nowcoder.get_today_data()
     atc_list = await atcoder.get_today_data()
 
-    msg = ''
+    msg = []
     n = 0
     if len(cf_list) > 0:
         for each in cf_list:
             if n == 0:
-                msg += '◉cf比赛：\n'
-            msg += '比赛名称：' + each.get_name() + '\n' \
-                   + '比赛时间：' + each.get_time() + '\n' \
-                    f'比赛时长：' + each.get_length() + '分钟\n'
+                msg.append(cf_title)
+            msg.append(to_context(each))
+
             n += 1
             if n >= 2:
                 break
     n = 0
-    msg2 = ''
+    msg2 = []
 
     if len(nc_list) > 0:
         # second = '{:.3f}'.format(time.time())
         # second2 = int(float(second)*1000)
         for data in nc_list:
             if n == 0:
-                msg2 += '◉牛客比赛：\n'
-            msg2 += "比赛名称：" + data.get_name() + '\n'
-            msg2 += "比赛时间：" + data.get_time() + '\n'
-            msg2 += "比赛时长：" + data.get_length() + '分钟\n'
+                msg2.append(nc_title)
+            msg2.append(to_context(data))
             n += 1
             if n >= 2:
                 break
     n = 0
-    msg3 = ''
+    msg3 = []
 
     if len(atc_list) > 0:
         for each in atc_list:
             if n == 0:
-                msg3 += '◉atc比赛：\n'
-            msg3 += '比赛名称：' + each.get_name() + '\n' \
-                    + '比赛时间：' + each.get_time() + '\n' \
-                    + '比赛时长：' + each.get_length() + '分钟\n'
+                msg3.append(atc_title)
+            msg3.append(to_context(each))
 
     if len(cf) == 0 and len(nc) == 0 and len(atc) == 0:
         return f'查询出错了，稍后再尝试哦~'
-    if msg == '' and msg2 == '' and msg3 == '':
+    if len(cf_list) == 0 and len(nc_list) == 0 and len(atc_list) == 0:
         return '今天没有比赛，但也要好好做题哦~'
-    return '找到今天的比赛如下：\n' + msg + msg2 + msg3
+    return [ '找到今天的比赛如下：', ''.join(msg), ''.join(msg2), ''.join(msg3) ]
 
 
 async def ans_next():
@@ -112,68 +110,68 @@ async def ans_next():
     nc_list = await nowcoder.get_next_data()
     atc_list = await atcoder.get_next_data()
     tomorrow = datetime.datetime.now().date() + timedelta(days=1)
-    msg = ''
+    msg = []
     n = 0
 
     if len(cf_list) > 0:
         for each in cf_list:
             if n == 0:
-                msg += '◉cf比赛：\n'
-            msg += '比赛名称：' + each.get_name() + '\n' \
-                   + '比赛时间：' + each.get_time() + '\n' \
-                   + '比赛时长：' + each.get_length() + '分钟\n'
+                msg.append(cf_title)
+            msg.append(to_context(each))
             n += 1
             if n >= 2:
                 break
     n = 0
-    msg2 = ''
+    msg2 = []
 
     if len(nc_list) > 0:
         for data in nc_list:
             if n == 0:
-                msg2 += '◉牛客比赛：\n'
-            msg2 += "比赛名称：" + data.get_name() + '\n'
-            msg2 += "比赛时间：" + data.get_time() + '\n'
-            msg2 += "比赛时长：" + data.get_length() + '分钟\n'
+                msg2.append(nc_title)
+            msg2.append(to_context(data))
             n += 1
             if n >= 2:
                 break
 
     n = 0
-    msg3 = ''
+    msg3 = []
 
     if len(atc_list) > 0:
         for each in atc_list:
-                if n == 0:
-                    msg3 += '◉atc比赛：\n'
-                msg3 += '比赛名称：' + (each.get_name()) + '\n' \
-                        + '比赛时间：' + (each.get_time()) + '\n' \
-                        + '比赛时长：' + (each.get_length()) + '分钟\n'
-                n += 1
+            if n == 0:
+                msg3.append(atc_title)
+            msg3.append(to_context(each))
+            n += 1
 
     if len(cf) == 0 and len(nc) == 0 and len(atc) == 0:
         return f'查询出错了，稍后再尝试哦~'
-    if msg == '' and msg2 == '' and msg3 == '':
+    if len(cf_list) == 0 and len(nc_list) == 0 and len(atc_list) == 0:
         return '接下来几天没有比赛，但也要好好做题哦~'
-    return '找到接下来的比赛如下：\n' + msg + msg2 + msg3
+    return ['找到接下来的比赛如下：', ''.join(msg), ''.join(msg2), ''.join(msg3)]
 
 
 today_matcher = on_fullmatch('today', priority=70, block=True)
 
 
 @today_matcher.handle()
-async def _():
+async def _(bot: Bot, event: MessageEvent):
     msg = await ans_today()
-    await today_matcher.finish(msg)
+    if isinstance(msg, str):
+        await today_matcher.finish(msg)
+    else:
+        await send_forward_msg(bot, event, "今日比赛", bot.self_id, msg)
 
 
 next_matcher = on_fullmatch('next', priority=70, block=True)
 
 
 @next_matcher.handle()
-async def _():
+async def _(bot: Bot, event: MessageEvent):
     msg = await ans_next()
-    await next_matcher.finish(msg)
+    if isinstance(msg, str):
+        await next_matcher.finish(msg)
+    else:
+        await send_forward_msg(bot, event, "接下来比赛", bot.self_id, msg)
 
 
 help = on_fullmatch(('help', '帮助'), block=True, priority=70, rule=to_me())

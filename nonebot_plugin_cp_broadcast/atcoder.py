@@ -8,7 +8,8 @@ from nonebot.plugin import on_fullmatch
 from nonebot.adapters.onebot.v11.message import Message
 from nonebot.log import logger
 from typing import List
-from .config import ContestType
+from .config import *
+from .utils import *
 import asyncio
 import re
 
@@ -68,6 +69,7 @@ async def get_data_atc() -> bool:  # 以元组形式插入列表中，从左到�
             ss = str(soup[0].contents[0].contents[0].contents[0]).replace('+0900', '')
             contest1_time1 = str(datetime.datetime.strptime(ss, '%Y-%m-%d %H:%M:%S') - datetime.timedelta(hours=1))
             contest1_time = int(time.mktime(time.strptime(contest1_time1, "%Y-%m-%d %H:%M:%S")))
+            url1 = 'https://atcoder.jp' + re.findall(r'<a href="(.+?)">', str(soup[1]))[0]
             contest1_length = re.findall(r'<td class="text-center">(.+?)</td>', str(soup[2]))[0]
             length_list1 = contest1_length.split(':')
 
@@ -75,11 +77,12 @@ async def get_data_atc() -> bool:  # 以元组形式插入列表中，从左到�
             ss1 = str(soup[4].contents[0].contents[0].contents[0]).replace('+0900', '')
             contest2_time2 = str(datetime.datetime.strptime(ss1, '%Y-%m-%d %H:%M:%S') - datetime.timedelta(hours=1))
             contest2_time = int(time.mktime(time.strptime(contest2_time2, "%Y-%m-%d %H:%M:%S")))
+            url2 = 'https://atcoder.jp' + re.findall(r'<a href="(.+?)">', str(soup[5]))[0]
             contest2_length: str = re.findall(r'<td class="text-center">(.+?)</td>', str(soup[2]))[0]
             length_list2 = contest2_length.split(':')
 
-            atc.append(ContestType(contest1_name, contest1_time, int(length_list1[0]) * 3600 + int(length_list1[1]) * 60))
-            atc.append(ContestType(contest2_name, contest2_time, int(length_list2[0]) * 3600 + int(length_list2[1]) *60))
+            atc.append(ContestType(contest1_name, contest1_time, url1, int(length_list1[0]) * 3600 + int(length_list1[1]) * 60))
+            atc.append(ContestType(contest2_name, contest2_time, url2, int(length_list2[0]) * 3600 + int(length_list2[1]) *60))
 
             return True
         except Exception as e:
@@ -96,10 +99,10 @@ async def ans_atc() -> str:
             await get_data_atc()
         if len(atc) == 0:
             return f'突然出错了，稍后再试哦~'
-        msg = f"找到最近的 2 场atc比赛为：\n"
+        msg = []
         for each in atc:
-            msg += f"比赛名称：{each.get_name()}\n比赛时间：{each.get_time()}\n比赛时长：{each.get_length()}分钟\n"
-        return msg
+            msg.append(to_context(each))
+        return '\n'.join([f"找到最近的 2 场atc比赛为：\n"] + msg)
     except:
         return f'突然出错了，稍后再试哦~'
 

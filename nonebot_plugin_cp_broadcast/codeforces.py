@@ -10,6 +10,7 @@ from nonebot.rule import to_me
 from typing import List
 from .aiosqlite import *
 from .config import ContestType
+from .utils import *
 import asyncio
 
 ###列表下标0为比赛名称、下标1为比赛时间、下标2为比赛链接
@@ -69,9 +70,10 @@ async def get_data_cf() -> bool:
                     break
                 contest_name = each['name']
                 contest_time = int(each['startTimeSeconds'])
+                contest_url = f"https://codeforces.com/contest/{str(each['id'])}"
                 contest_length = int(each['durationSeconds'])
 
-                cf.append(ContestType(contest_name, contest_time, contest_length))
+                cf.append(ContestType(contest_name, contest_time, contest_url, contest_length))
             cf.reverse()
             return True
         except:
@@ -86,18 +88,14 @@ async def ans_cf() -> str:
         await get_data_cf()
     if len(cf) == 0:
         return f'突然出错了，稍后再试哦~'
-    msg = ''
+    msg = []
     tot = 0
     for each in cf:
-        msg += '比赛名称：' + each.get_name() + '\n' \
-               + '比赛时间：' + each.get_time() + '\n' \
-               + '比赛时长：' + f'{each.get_length()}分钟'
+        msg.append(to_context(each))
         tot += 1
-        if tot != 3:
-            msg += '\n'
-        else:
+        if tot >= 3:
             break
-    return f"找到最近的 {tot} 场cf比赛为：\n" + msg
+    return '\n'.join( [f"找到最近的 {tot} 场cf比赛为："] + msg )
 
 
 cf_matcher = on_fullmatch('cf', priority=80, block=True)
