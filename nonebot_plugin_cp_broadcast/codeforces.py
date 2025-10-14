@@ -167,7 +167,7 @@ async def rank_handle(bot: Bot):
 async def remarks_handle(bot: Bot, args: Message = CommandArg()):
     cf_list = args.extract_plain_text().split(' ')
     if len(cf_list) != 2:
-        remarks.finish('格式不正确，请重新触发指令')
+        await remarks.finish('格式不正确，请重新触发指令')
 
     cf_id, cf_remarks = cf_list
     status = await modifyRemarks(cf_id, cf_remarks)

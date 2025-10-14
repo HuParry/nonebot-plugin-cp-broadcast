@@ -1,7 +1,6 @@
 from .config import (cp_broadcast_path, cf_user_info_baseurl,
                      cf_user_status_baseurl, cf_user_rating_baseurl)
 from nonebot.log import logger
-import sqlite3
 import aiosqlite
 import json
 import datetime
@@ -59,7 +58,6 @@ async def _on_startup():
             passedTestCount INTEGER,   
             timeConsumedMillis INTEGER, 
             memoryConsumedBytes INTEGER 
-            
         )
     """
                          )
@@ -290,7 +288,8 @@ async def addUser(id: str):
     # else:
     #     status = False
 
-    await cursor.execute('INSERT OR REPLACE INTO CF_User_remarks VALUES (?, ?, ?)', Remarks.returnTuple())
+    if status:
+        await cursor.execute('INSERT OR REPLACE INTO CF_User_remarks VALUES (?, ?, ?)', Remarks.returnTuple())
 
     await conn.commit()
 
