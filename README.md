@@ -162,3 +162,10 @@ cp_broadcast_cf_interval=10
 <img src="./docs/cf_paimin.JPG" width="375" />
 
 <img src="./docs/cf_jianshi.JPG" width="375" />
+
+## 鸣谢
+感谢以下开发者作出的贡献：
+
+<a href="https://github.com/HuParry/nonebot-plugin-cp-broadcast/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=HuParry/nonebot-plugin-cp-broadcast"  alt="contributors"/>
+</a>
