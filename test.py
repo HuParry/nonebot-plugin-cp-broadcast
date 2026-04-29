@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 from httpx import AsyncClient
 
 import requests
-
 atc = []
 url = f'https://atcoder.jp/contests/?lang=jp'
 resp = requests.get(url=url, timeout=10.0)
