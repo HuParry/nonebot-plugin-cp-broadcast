@@ -188,7 +188,11 @@ async def auto_broadcast():
     await asyncio.sleep(1)
     for id in cp_broadcast_list:
         await asyncio.sleep(2)
-        await get_bot().send_group_msg(group_id=id, message='早上好呀！' + await ans_today())
+        msg = await ans_today()
+        if isinstance(msg, str):
+            await get_bot().send_group_msg(group_id=id, message='早上好呀！' + msg)
+        else:
+            await  get_bot().send_group_msg(group_id=id, message=['早上好呀！'] + msg)
 
 
 if scheduler:
