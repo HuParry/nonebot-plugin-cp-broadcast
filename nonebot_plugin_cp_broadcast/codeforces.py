@@ -150,7 +150,7 @@ async def query_handle(bot: Bot, event: GroupMessageEvent, args: Message = Comma
         msg = await queryUser(cfid)
         await query.finish(msg)
     else:
-        await bind.finish('绑定失败，请按照格式发起指令！')
+        await query.finish('查询失败，请确认用户是否真实存在！')
 
 
 @rank.handle()
