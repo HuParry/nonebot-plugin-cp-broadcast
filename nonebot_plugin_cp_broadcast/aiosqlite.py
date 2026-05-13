@@ -301,15 +301,13 @@ async def removeUser(id: str):
 
     cfid = id.lower()
     await cursor.execute('DELETE FROM CF_User_info WHERE handle = ?', (cfid,))
+    deleted = cursor.rowcount
     await cursor.execute('DELETE FROM CF_User_status WHERE handle = ?', (cfid,))
     await cursor.execute('DELETE FROM CF_User_rating WHERE handle = ?', (cfid,))
     await cursor.execute('DELETE FROM CF_User_remarks WHERE handle = ?', (cfid,))
     await conn.commit()
 
-    if cursor.rowcount == 0:
-        return False
-
-    return True
+    return deleted > 0
 
 
 async def returnChangeInfo():
@@ -368,19 +366,19 @@ async def returnBindList():
     global cursor, conn
     await cursor.execute('SELECT handle FROM CF_User_info')
     data = await cursor.fetchall()
-    if data is None:
-        return f'当前无监视选手'
+    if not data:
+        return '当前无监视选手'
 
     msg = '当前已监视选手如下:\n'
 
     for curTuple in data:
         handle = str(curTuple[0])
         await cursor.execute('SELECT remarks FROM CF_User_remarks WHERE handle=?', (handle,))
-        data = await cursor.fetchone()
-        if data is None:
+        remark_row = await cursor.fetchone()
+        if remark_row is None:
             remarks = "null"
         else:
-            remarks = str(data[0])
+            remarks = str(remark_row[0])
         msg += f'{handle}({remarks}) \n'
     return msg
 
