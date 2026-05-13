@@ -51,6 +51,8 @@ async def get_data_nc(url: str = "https://ac.nowcoder.com/acm/contest/vip-index"
     """
 
     global nc
+    if len(nc) > 0:
+        nc.clear()
     content = await req_get(url)
     soup = BeautifulSoup(content, 'html.parser')
     find_item: Union[Tag, NavigableString, None] = soup.find('div', class_='platform-mod js-current')
