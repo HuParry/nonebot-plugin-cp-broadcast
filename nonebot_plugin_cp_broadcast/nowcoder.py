@@ -39,7 +39,7 @@ async def req_get(url: URLTypes, proxies: Optional[ProxiesTypes] = None) -> str:
     return r.content.decode("utf-8")
 
 
-async def get_data_nc(url: str = "https://ac.nowcoder.com/acm/contest/vip-index") -> List[ContestType]:
+async def get_data_nc(url: str = "https://ac.nowcoder.com/acm/contest/vip-index") -> bool:
     """
     处理牛客的竞赛列表
 
@@ -57,7 +57,7 @@ async def get_data_nc(url: str = "https://ac.nowcoder.com/acm/contest/vip-index"
     soup = BeautifulSoup(content, 'html.parser')
     find_item: Union[Tag, NavigableString, None] = soup.find('div', class_='platform-mod js-current')
     if not isinstance(find_item, Tag):
-        return nc
+        return False
     datatable: ResultSet = find_item.find_all('div', class_='platform-item js-item')
 
     for contest in datatable:
@@ -69,7 +69,7 @@ async def get_data_nc(url: str = "https://ac.nowcoder.com/acm/contest/vip-index"
             nc.append(ContestType(cdata['contestName'], int(cdata["contestStartTime"] / 1000),
                                   contest_url, cdata["contestDuration"] / 1000))
 
-    return nc
+    return True
 
 
 async def get_today_data() -> List[ContestType]:

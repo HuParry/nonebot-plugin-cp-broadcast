@@ -10,7 +10,6 @@ from nonebot.adapters.onebot.v11 import Message, MessageSegment
 import asyncio
 from nonebot import get_driver
 
-# 激活驱动器
 driver = get_driver()
 
 conn: aiosqlite.Connection
@@ -26,82 +25,32 @@ async def _on_startup():
     conn = await aiosqlite.connect(cp_broadcast_path / 'data.db')
     cursor = await conn.cursor()
     await cursor.execute("""
-        CREATE TABLE IF NOT EXISTS CF_User_info (
-            handle TEXT PRIMARY KEY,   
-            contribution INTEGER,       
-            'rank' TEXT,               
-            rating INTEGER,            
-            maxRank TEXT,              
-            maxRanting INTEGER,        
-            lastOnlineTimeSeconds INTEGER, 
-            friendOfCount INTEGER,     
-            avatar TEXT            
+        CREATE TABLE IF NOT EXISTS CF_User (
+            handle                       TEXT    PRIMARY KEY,
+            contribution                 INTEGER DEFAULT 0,
+            rank                         TEXT    DEFAULT 'unrated',
+            rating                       INTEGER DEFAULT 0,
+            max_rank                     TEXT    DEFAULT 'unrated',
+            max_rating                   INTEGER DEFAULT 0,
+            last_online_time             INTEGER DEFAULT 0,
+            friend_of_count              INTEGER DEFAULT 0,
+            avatar                       TEXT    DEFAULT '',
+            last_submission_id           INTEGER DEFAULT 0,
+            last_submission_contest_id   INTEGER DEFAULT 0,
+            last_submission_language     TEXT    DEFAULT '',
+            last_submission_passed_tests INTEGER DEFAULT 0,
+            last_submission_time_ms      INTEGER DEFAULT 0,
+            last_submission_memory_bytes INTEGER DEFAULT 0,
+            last_rated_contest_id        INTEGER DEFAULT 0,
+            last_rated_contest_name      TEXT    DEFAULT '',
+            last_rated_rank              INTEGER DEFAULT 0,
+            last_rated_old_rating        INTEGER DEFAULT 0,
+            last_rated_new_rating        INTEGER DEFAULT 0,
+            remarks                      TEXT    DEFAULT '',
+            broadcast_time               INTEGER DEFAULT 0
         )
-    """
-                         )
-    # codeforces' username
-    # User contribution.
-    # User rank, String.
-    # 现在的rating分
-    # 最高的rank
-    # 最高的rating分
-    # 上次在线时间
-    # The user's friend count
-    # 头像链接
-
-    await cursor.execute("""
-        CREATE TABLE IF NOT EXISTS CF_User_status (  
-            handle TEXT PRIMARY KEY,   
-            id INTEGER,                
-            contestId INTEGER,         
-            programmingLanguage TEXT,  
-            passedTestCount INTEGER,   
-            timeConsumedMillis INTEGER, 
-            memoryConsumedBytes INTEGER 
-        )
-    """
-                         )
-    # 记录user的submission表
-    # codeforces' username
-    # one submission's id.
-    # 比赛的id
-    # 程序所用语言
-    # 通过的数据组数
-    # Maximum time in milliseconds, consumed by solution for one test.
-    # Maximum memory in bytes, consumed by solution for one test.
-
-    await cursor.execute("""
-        CREATE TABLE IF NOT EXISTS CF_User_rating (  
-            handle TEXT PRIMARY KEY,   
-            contestId INTEGER,         
-            contestName TEXT,          
-            'rank' INTEGER,            
-            oldRating INTEGER,         
-            newRating INTEGER          
-        )
-    """
-                         )
-
-    # 记录user的rating 变化记录，只记录最后一条
-    # codeforces' username
-    # contest's id.
-    # 比赛的名称
-    # 比赛排名
-    # 变化前排名
-    # 变化后排名
-
-    await cursor.execute("""
-        CREATE TABLE IF NOT EXISTS CF_User_remarks (  
-            handle TEXT PRIMARY KEY,   
-            remarks TEXT,
-            broadcast_time INTEGER    
-        )
-    """
-                         )
-
-    # user的id
-    # 该user的备注名
-    # 更新时间
+    """)
+    await conn.commit()
 
 
 class CF_UserInfo:
@@ -117,10 +66,6 @@ class CF_UserInfo:
         self.friendOfCount = int(friendOfCount)
         self.avatar = str(avatar)
 
-    def returnTuple(self):
-        return (self.handle, self.contribution, self.rank, self.rating, self.maxRank, self.maxRating,
-                self.lastOnlineTimeSeconds, self.friendOfCount, self.avatar)
-
     @staticmethod
     async def getByHttp(handle: str):
         cf_user_info_url = cf_user_info_baseurl + handle
@@ -129,7 +74,6 @@ class CF_UserInfo:
             async with AsyncClient() as client:
                 response = await client.get(cf_user_info_url, timeout=10.0)
             response.raise_for_status()
-
             data = json.loads(response.text)
         except Exception as e:
             logger.warning(e)
@@ -137,19 +81,17 @@ class CF_UserInfo:
 
         if data["status"] == "OK":
             for result in data["result"]:
-                Info = CF_UserInfo(
+                return CF_UserInfo(
                     handle=result["handle"],
                     contribution=result["contribution"],
-                    rank=result["rank"] if "rank" in result else "null",
-                    rating=result["rating"] if "rating" in result else 0,
-                    maxRank=result["maxRank"] if "maxRank" in result else "null",
-                    maxRating=result["maxRating"] if "maxRating" in result else 0,
-                    lastOnlineTimeSeconds=result["lastOnlineTimeSeconds"] if "lastOnlineTimeSeconds" in result else 0,
-                    friendOfCount=result["friendOfCount"] if "friendOfCount" in result else 0,
-                    avatar=result["avatar"] if "avatar" in result else "404"
+                    rank=result.get("rank", "null"),
+                    rating=result.get("rating", 0),
+                    maxRank=result.get("maxRank", "null"),
+                    maxRating=result.get("maxRating", 0),
+                    lastOnlineTimeSeconds=result.get("lastOnlineTimeSeconds", 0),
+                    friendOfCount=result.get("friendOfCount", 0),
+                    avatar=result.get("avatar", "404"),
                 )
-
-                return Info
 
         logger.warning('请求失败')
         return None
@@ -166,10 +108,6 @@ class CF_UserStatus:
         self.timeConsumedMillis = int(timeConsumedMillis)
         self.memoryConsumedBytes = int(memoryConsumedBytes)
 
-    def returnTuple(self):
-        return (self.handle, self.id, self.contestId, self.programmingLanguage,
-                self.passedTestCount, self.timeConsumedMillis, self.memoryConsumedBytes)
-
     @staticmethod
     async def getByHttp(handle: str):
         cf_user_status_url = cf_user_status_baseurl.format(handle=handle)
@@ -178,31 +116,24 @@ class CF_UserStatus:
             async with AsyncClient() as client:
                 response = await client.get(cf_user_status_url, timeout=10.0)
             response.raise_for_status()
-
             data = json.loads(response.text)
         except Exception as e:
             logger.warning(e)
             return None
 
-        if data["status"] != "OK":
-            logger.warning('请求失败')
-            return None
-
-        if len(data["result"]) == 0:
+        if data["status"] != "OK" or len(data["result"]) == 0:
             return None
 
         result = data["result"][0]
-        Status = CF_UserStatus(
+        return CF_UserStatus(
             handle=handle,
             id=result["id"],
-            contestId=result["contestId"] if "contestId" in result else 0,
+            contestId=result.get("contestId", 0),
             programmingLanguage=result["programmingLanguage"],
             passedTestCount=result["passedTestCount"],
             timeConsumedMillis=result["timeConsumedMillis"],
-            memoryConsumedBytes=result["memoryConsumedBytes"]
+            memoryConsumedBytes=result["memoryConsumedBytes"],
         )
-
-        return Status
 
 
 class CF_UserRating:
@@ -210,13 +141,9 @@ class CF_UserRating:
         self.handle = str(handle).lower()
         self.contestId = int(contestId)
         self.contestName = str(contestName)
-        self.rank = str(rank)
+        self.rank = int(rank)
         self.oldRating = int(oldRating)
         self.newRating = int(newRating)
-
-    def returnTuple(self):
-        return (self.handle, self.contestId, self.contestName,
-                self.rank, self.oldRating, self.newRating)
 
     @staticmethod
     async def getByHttp(handle: str):
@@ -226,41 +153,23 @@ class CF_UserRating:
             async with AsyncClient() as client:
                 response = await client.get(cf_user_rating_url, timeout=10.0)
             response.raise_for_status()
-
             data = json.loads(response.text)
         except Exception as e:
             logger.warning(e)
             return None
 
-        if data["status"] != "OK":
-            logger.warning('请求失败')
-            return None
-
-        if len(data["result"]) == 0:
+        if data["status"] != "OK" or len(data["result"]) == 0:
             return None
 
         result = data["result"][-1]
-
-        Rating = CF_UserRating(
+        return CF_UserRating(
             handle=result["handle"],
             contestId=result["contestId"],
             contestName=result["contestName"],
             rank=result["rank"],
             oldRating=result["oldRating"],
-            newRating=result["newRating"]
+            newRating=result["newRating"],
         )
-
-        return Rating
-
-
-class CF_UserRemarks:
-    def __init__(self, handle: str, remarks: str, broadcast_time: int):
-        self.handle = handle.lower()
-        self.remarks = remarks.lower()
-        self.broadcast_time = broadcast_time
-
-    def returnTuple(self):
-        return (self.handle, self.remarks, self.broadcast_time)
 
 
 async def addUser(id: str):
@@ -268,45 +177,47 @@ async def addUser(id: str):
     Info = await CF_UserInfo.getByHttp(id)
     Status = await CF_UserStatus.getByHttp(id)
     Rating = await CF_UserRating.getByHttp(id)
-    Remarks = CF_UserRemarks(id, id, 0)
 
-    status = True
+    if Info is None:
+        return False
 
-    if Info is not None:
-        await cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                             Info.returnTuple())
-    else:
-        status = False
-
-    if Status is not None:
-        await cursor.execute('INSERT OR REPLACE INTO CF_User_status VALUES (?, ?, ?, ?, ?, ?, ?)', Status.returnTuple())
-    # else:
-    #     status = False
-
-    if Rating is not None:
-        await cursor.execute('INSERT OR REPLACE INTO CF_User_rating VALUES (?, ?, ?, ?, ?, ?)', Rating.returnTuple())
-    # else:
-    #     status = False
-
-    if status:
-        await cursor.execute('INSERT OR REPLACE INTO CF_User_remarks VALUES (?, ?, ?)', Remarks.returnTuple())
-
+    await cursor.execute('''
+        INSERT OR REPLACE INTO CF_User (
+            handle, contribution, rank, rating, max_rank, max_rating,
+            last_online_time, friend_of_count, avatar,
+            last_submission_id, last_submission_contest_id, last_submission_language,
+            last_submission_passed_tests, last_submission_time_ms, last_submission_memory_bytes,
+            last_rated_contest_id, last_rated_contest_name, last_rated_rank,
+            last_rated_old_rating, last_rated_new_rating,
+            remarks, broadcast_time
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        Info.handle, Info.contribution, Info.rank, Info.rating,
+        Info.maxRank, Info.maxRating, Info.lastOnlineTimeSeconds,
+        Info.friendOfCount, Info.avatar,
+        Status.id if Status else 0,
+        Status.contestId if Status else 0,
+        Status.programmingLanguage if Status else '',
+        Status.passedTestCount if Status else 0,
+        Status.timeConsumedMillis if Status else 0,
+        Status.memoryConsumedBytes if Status else 0,
+        Rating.contestId if Rating else 0,
+        Rating.contestName if Rating else '',
+        Rating.rank if Rating else 0,
+        Rating.oldRating if Rating else 0,
+        Rating.newRating if Rating else 0,
+        Info.handle,  # remarks 默认为 handle
+        0,
+    ))
     await conn.commit()
-
-    return status
+    return True
 
 
 async def removeUser(id: str):
     global cursor, conn
-
-    cfid = id.lower()
-    await cursor.execute('DELETE FROM CF_User_info WHERE handle = ?', (cfid,))
+    await cursor.execute('DELETE FROM CF_User WHERE handle = ?', (id.lower(),))
     deleted = cursor.rowcount
-    await cursor.execute('DELETE FROM CF_User_status WHERE handle = ?', (cfid,))
-    await cursor.execute('DELETE FROM CF_User_rating WHERE handle = ?', (cfid,))
-    await cursor.execute('DELETE FROM CF_User_remarks WHERE handle = ?', (cfid,))
     await conn.commit()
-
     return deleted > 0
 
 
@@ -315,15 +226,15 @@ async def returnChangeInfo():
     global cursor, conn
 
     await cursor.execute('''
-        SELECT CF_User_info.handle, rating, CF_User_status.id, remarks, broadcast_time
-        FROM CF_User_info, CF_User_status, CF_User_remarks 
-        WHERE CF_User_info.handle=CF_User_status.handle and CF_User_info.handle=CF_User_remarks.handle
+        SELECT handle, rating, last_submission_id, remarks, broadcast_time
+        FROM CF_User
     ''')
     RS = await cursor.fetchall()
+
     for row in RS:
         handle = row[0]
-        rating = row[1]
-        submission_id = row[2]
+        cached_rating = row[1]
+        cached_submission_id = row[2]
         remarks = row[3]
         broadcast_time = int(row[4])
 
@@ -331,31 +242,48 @@ async def returnChangeInfo():
         Status = await CF_UserStatus.getByHttp(handle)
         Rating = await CF_UserRating.getByHttp(handle)
 
-        # -----在这片区域可以写前后变化的操作
-        ## 分数变化，以json形式存入
-        if Rating is not None and Rating.newRating != rating:
-            Users['ratingChange'].append(
-                {'handle': handle, 'remarks': remarks, 'oldRating': Rating.oldRating, 'newRating': Rating.newRating})
+        if Rating is not None and Rating.newRating != cached_rating:
+            Users['ratingChange'].append({
+                'handle': handle, 'remarks': remarks,
+                'oldRating': Rating.oldRating, 'newRating': Rating.newRating,
+            })
 
-        ## cf上线提醒，有交题，且两小时内没播报说明在卷
-        if (Status is not None and Status.id != submission_id and
+        if (Status is not None and Status.id != cached_submission_id and
                 (int(time.time()) - broadcast_time >= 7200)):
-            await cursor.execute('update CF_User_remarks set broadcast_time=? where handle=?',
-                                 (int(time.time()), handle))
+            await cursor.execute(
+                'UPDATE CF_User SET broadcast_time = ? WHERE handle = ?',
+                (int(time.time()), handle)
+            )
             Users['cfOnline'].append({'handle': handle, 'remarks': remarks, 'contestId': Status.contestId})
-        # -----
 
         if Info is not None:
-            await cursor.execute('INSERT OR REPLACE INTO CF_User_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                                 Info.returnTuple())
+            await cursor.execute('''
+                UPDATE CF_User SET
+                    contribution = ?, rank = ?, rating = ?, max_rank = ?, max_rating = ?,
+                    last_online_time = ?, friend_of_count = ?, avatar = ?
+                WHERE handle = ?
+            ''', (Info.contribution, Info.rank, Info.rating, Info.maxRank, Info.maxRating,
+                  Info.lastOnlineTimeSeconds, Info.friendOfCount, Info.avatar, handle))
 
         if Status is not None:
-            await cursor.execute('INSERT OR REPLACE INTO CF_User_status VALUES (?, ?, ?, ?, ?, ?, ?)',
-                                 Status.returnTuple())
+            await cursor.execute('''
+                UPDATE CF_User SET
+                    last_submission_id = ?, last_submission_contest_id = ?,
+                    last_submission_language = ?, last_submission_passed_tests = ?,
+                    last_submission_time_ms = ?, last_submission_memory_bytes = ?
+                WHERE handle = ?
+            ''', (Status.id, Status.contestId, Status.programmingLanguage,
+                  Status.passedTestCount, Status.timeConsumedMillis,
+                  Status.memoryConsumedBytes, handle))
 
         if Rating is not None:
-            await cursor.execute('INSERT OR REPLACE INTO CF_User_rating VALUES (?, ?, ?, ?, ?, ?)',
-                                 Rating.returnTuple())
+            await cursor.execute('''
+                UPDATE CF_User SET
+                    last_rated_contest_id = ?, last_rated_contest_name = ?, last_rated_rank = ?,
+                    last_rated_old_rating = ?, last_rated_new_rating = ?
+                WHERE handle = ?
+            ''', (Rating.contestId, Rating.contestName, Rating.rank,
+                  Rating.oldRating, Rating.newRating, handle))
 
         await conn.commit()
 
@@ -364,67 +292,51 @@ async def returnChangeInfo():
 
 async def returnBindList():
     global cursor, conn
-    await cursor.execute('SELECT handle FROM CF_User_info')
+    await cursor.execute('SELECT handle, remarks FROM CF_User')
     data = await cursor.fetchall()
     if not data:
         return '当前无监视选手'
 
     msg = '当前已监视选手如下:\n'
-
-    for curTuple in data:
-        handle = str(curTuple[0])
-        await cursor.execute('SELECT remarks FROM CF_User_remarks WHERE handle=?', (handle,))
-        remark_row = await cursor.fetchone()
-        if remark_row is None:
-            remarks = "null"
-        else:
-            remarks = str(remark_row[0])
-        msg += f'{handle}({remarks}) \n'
+    for row in data:
+        msg += f'{row[0]}({row[1]}) \n'
     return msg
 
 
 async def queryUser(id: str):
-    global cf_user_info_baseurl, cursor, conn
     cf_user_info_url = cf_user_info_baseurl + id
-
     msg = MessageSegment.text('查询失败！请检查该用户是否存在')
     try:
         async with AsyncClient() as client:
             response = await client.get(cf_user_info_url, timeout=10.0)
         response.raise_for_status()
-
         data = json.loads(response.text)
     except Exception as e:
         logger.warning(e)
         return msg
 
     if data['status'] == 'OK':
-        results = data['result']
-
-        for result in results:
-            avatar_url = result['avatar'] if "avatar" in result else "null"
+        for result in data['result']:
+            avatar_url = result.get('avatar', 'null')
             name = result['handle']
-            rank = result['rank'] if 'rank' in result else 'Unrated'
-            contest_rating = result['rating'] if 'rating' in result else '0'
-            max_rating = result['maxRating'] if 'maxRating' in result else '0'
-            contribution = result['contribution'] if 'contribution' in result else '0'
-            friend_of = result['friendOfCount'] if 'friendOfCount' in result else '0'
+            rank = result.get('rank', 'Unrated')
+            contest_rating = result.get('rating', '0')
+            max_rating = result.get('maxRating', '0')
+            contribution = result.get('contribution', '0')
+            friend_of = result.get('friendOfCount', '0')
 
             async with AsyncClient() as client:
                 resp = await client.get(avatar_url, timeout=10.0)
 
-            pic = resp.content
-
-            msg = MessageSegment.image(pic)
+            msg = MessageSegment.image(resp.content)
             msg += Message(
-                "\nname: " + name + \
-                "\nrank: " + rank + \
-                "\nrating: " + str(contest_rating) + \
-                "\nmax rating: " + str(max_rating) + \
-                "\ncontribution: " + str(contribution) + \
+                "\nname: " + name +
+                "\nrank: " + rank +
+                "\nrating: " + str(contest_rating) +
+                "\nmax rating: " + str(max_rating) +
+                "\ncontribution: " + str(contribution) +
                 "\nfriend of: " + str(friend_of) + " users"
             )
-
             return msg
     else:
         logger.warning('添加用户失败')
@@ -433,19 +345,15 @@ async def queryUser(id: str):
 
 async def returnRanklist():
     global cursor, conn
-    await cursor.execute('SELECT handle, rating FROM CF_User_info ORDER BY rating DESC')
-    data = await cursor.fetchall()
-    return data
+    await cursor.execute('SELECT handle, rating FROM CF_User ORDER BY rating DESC')
+    return await cursor.fetchall()
 
 
 async def modifyRemarks(cf_id: str, cf_remarks: str):
     global cursor, conn
-    cfid = cf_id.lower()
-
     await cursor.execute(
-        f"insert or replace into CF_User_remarks(handle, remarks) select handle, '{cf_remarks}' from CF_User_info where handle=?",
-        (cfid,))
+        'UPDATE CF_User SET remarks = ? WHERE handle = ?',
+        (cf_remarks, cf_id.lower())
+    )
     await conn.commit()
-    if cursor.rowcount == 0:
-        return False
-    return True
+    return cursor.rowcount > 0
