@@ -5,7 +5,7 @@ from json import loads
 from html import unescape
 from bs4 import BeautifulSoup, NavigableString, ResultSet, Tag
 from httpx import AsyncClient, Response
-from httpx._types import URLTypes, ProxiesTypes
+from httpx._types import URLTypes, ProxyTypes
 
 from nonebot.plugin import on_fullmatch
 from fake_useragent import FakeUserAgent
@@ -24,7 +24,7 @@ headers = {
 nc: List[ContestType] = []
 
 
-async def req_get(url: URLTypes, proxies: Optional[ProxiesTypes] = None) -> str:
+async def req_get(url: URLTypes, proxies: Optional[ProxyTypes] = None) -> str:
     """
     生成一个异步的GET请求
 
@@ -34,7 +34,7 @@ async def req_get(url: URLTypes, proxies: Optional[ProxiesTypes] = None) -> str:
     Returns:
         str: URL对应的HTML
     """
-    async with AsyncClient(proxies=proxies) as client:
+    async with AsyncClient(proxy=proxies) as client:
         r: Response = await client.get(url)
     return r.content.decode("utf-8")
 
