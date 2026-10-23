@@ -1,14 +1,14 @@
 import time
+import datetime
 from datetime import timedelta
 
-from httpx import AsyncClient
 from nonebot.plugin import on_fullmatch, on_command
 from nonebot.adapters.onebot.v11.message import Message
 from nonebot.adapters.onebot.v11 import Bot, PrivateMessageEvent, GroupMessageEvent
 from nonebot.params import CommandArg
 from nonebot.rule import to_me
 from typing import List
-from .aiosqlite import *
+from .json_store import *
 from .config import ContestType
 from .utils import *
 import asyncio
@@ -63,9 +63,10 @@ async def get_data_cf() -> bool:
         try:
             if len(cf) > 0:
                 cf.clear()
-            async with AsyncClient() as client:
-                r = await client.get(url, timeout=10)
-            for each in r.json()['result'][0::]:
+            data = await requestCodeforces(url)
+            if data.get('status') != 'OK':
+                raise ValueError(data.get('comment', 'Codeforces API 请求失败'))
+            for each in data['result'][0::]:
                 if each['phase'] != "BEFORE":
                     break
                 contest_name = each['name']

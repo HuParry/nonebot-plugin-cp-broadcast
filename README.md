@@ -27,7 +27,7 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 除了简单的指令外，它支持每天定时发送三种比赛的信息。
 
-查询的结果会存到列表里，以减少网站爬取的次数。
+比赛查询结果会缓存在内存列表中，以减少重复访问比赛网站的次数。
 
 · Codeforces:
 极负盛名的俄罗斯算法竞赛练习网站。相关的比赛播报乃至用户监视提醒功能均由Codeforces官方提供的api实现。当然由于是国外网站，在国内访问可能会比较缓慢。
@@ -43,8 +43,6 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 插件可能有很多不完善的地方，欢迎大家来提 issue 和 pull requests。 
 
 有任何问题可联系QQ：3411907440。
-
-**注意：自v3.0.0版本起，插件发生了巨大改动，包括数据库表的重新设计，请各位重新导入用户！！！**
 
 ## 💿 安装
 
@@ -93,7 +91,7 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 
 |           配置项            | 必填 |                     默认值                     |                                      说明                                      |
 |:------------------------:|:----:|:-------------------------------------------:|:----------------------------------------------------------------------------:|
-|    cp_broadcast_path     | 否 | get_data_dir("nonebot_plugin_cp_broadcast") |                        数据存储路径定义，用户不定义则由localstore插件确定                        |
+|    cp_broadcast_path     | 否 | get_data_dir("nonebot_plugin_cp_broadcast") | 数据存储目录，用户不定义则由 localstore 插件确定；Codeforces 监视数据写入此目录下的 `data.json` |
 |    cp_broadcast_list     | 否 |                     [ ]                     |                      开启早晨自动播报今日比赛的群聊，填 QQ 群号，注意以字符串形式填入                      |
 |   cp_broadcast_botname   | 否 |                    "bot"                    |                    填入你 bot 的名字，在 `help` 指令下会使用到你的 bot 的名字                    |
 |    cp_broadcast_time     | 否 |         {"hour":"7", "minute":"20"}         |             每日在群聊播报比赛信息的时间，默认是早上 7 点 20，你可以在配置文件中按默认值格式修改成你想要的时间             |
@@ -112,7 +110,58 @@ cp_broadcast_cf_list=["xxxxxxxx"]
 cp_broadcast_cf_interval=10
 ```
 
+Codeforces 的用户资料、监视备注、提醒状态和 rating 历史都保存在 `cp_broadcast_path/data.json` 中。本版本不读取旧版 SQLite 数据；升级后请对每个需要监视的用户逐个发送 `cf监视 <handle>`。文件大致采用下面的结构，用户以小写 handle 为键，rating 历史以 contest ID 为键。每次成功获取 API 历史后会整体替换已有内容，并只保留更新时间最新的 5 场（可以少于 5 场）；API 请求失败时保留上次成功获取的内容：
+
+```json
+{
+  "version": 1,
+  "users": {
+    "example_handle": {
+      "profile": {
+        "handle": "example_handle",
+        "rating": 1600,
+        "rank": "expert"
+      },
+      "monitor": {
+        "remarks": "示例备注",
+        "last_processed_submission_id": 123456789,
+        "last_submission_event_at_seconds": 1780000000,
+        "last_notified_submission_id": 123456789,
+        "delivery_attempts": {
+          "123456789": {
+            "submission_id": 123456789,
+            "submission_attempt_at_seconds": 1780000000
+          }
+        }
+      },
+      "rating_history": {
+        "2000": {
+          "contest_id": 2000,
+          "contest_name": "Example Contest",
+          "rank": 1,
+          "old_rating": 1500,
+          "new_rating": 1600,
+          "rating_update_time_seconds": 1760000000
+        }
+      }
+    }
+  }
+}
+```
+
+示例只展示主要字段；实际文件还会包含可用的其他用户资料和通知游标。字段说明见[JSON 数据结构说明](./docs/database-design.md)。
+
+Codeforces 做题监视每隔 `cp_broadcast_cf_interval` 分钟查询最新提交，只比较最新提交 ID 是否与上次保存的 ID 不同。添加用户时先建立基线，避免提醒历史提交；请求失败后第一次成功查询也只建立基线。每次发现不同的提交 ID，都在该轮查询中先更新并保存 `last_processed_submission_id`，再返回播报事件，因此相同提交不会因为消息发送失败而在下一轮再次判为新提交。两小时冷却期从生成事件时开始，也独立于发送结果；冷却期内的新提交只更新记录，不生成事件。提醒展示提交 ID 和实际提交时间。
+
+为避免重复刷屏，每条通知按“群号＋用户＋提交 ID”在 `delivery_attempts` 中先保存发送预留，再调用机器人发送。最新提交 ID 保持不变时，同一群不会重复尝试发送；同一用户在同一群的提交提醒有 2 小时冷却期，期间检测到的新提交会跳过，之后不会补发。去重记录写入失败时停止该条发送；发送失败、超时或重启后不自动重发已预留的通知。这样可能漏掉一条提醒，但能避免因发送结果不明而循环刷屏。各群独立处理，rating 提醒也按群保存去重水位。
+
+`delivery_attempts` 以群号为键，每个群只保存最新提交 ID、尝试时间和 rating 水位，不逐条追加通知历史。数据目录下的 `.cp-broadcast.lock` 用于阻止多个进程同时使用同一份数据，业务数据仍全部保存在 `data.json`。
+
+插件内的 Codeforces API 请求共用限速锁，请求开始时间至少间隔 2.1 秒，以满足[官方每 2 秒最多一次请求的限制](https://codeforces.com/apiHelp)。监视人数较多时，一轮查询需要更长时间，请适当增加轮询间隔。
+
 该插件依赖 [nonebot_plugin_apscheduler](https://github.com/nonebot/plugin-apscheduler) 实现定时发送功能，如果你未安装此依赖的话，将无法触发与定时相关的功能。
+
+若旧版本正在重复播报，可先设置 `cp_broadcast_cf_list=[]` 并重启机器人停止监视通知。替换实际运行环境加载的插件代码后，确认启动日志出现“已启用按群持久化去重（发送前预留，失败不自动重发）”，再恢复群列表。当前代码的消息含提交 ID；如果仍出现“卷王……又开始上cf做题啦”，请检查旧机器人进程或其他安装目录是否仍在运行。
 
 ## 🎉 使用
 ### 指令表
@@ -125,8 +174,8 @@ cp_broadcast_cf_interval=10
 |    `next`    | 群员 | 否 | 群聊 |        发送今天后的部分比赛信息         |
 |    `help`    | 群员 | 是 | 群聊 |           发送帮助信息            |
 |   `update`   | 群员 | 否 | 群聊 |          手动更新比赛信息           |
-|    `cf监视`    | 群员 | 是 | 群聊 |       监视某人的 rating 变化       |
-|   `cf监视移除`   | 群员 | 是 | 群聊 |      移除监视某人的 rating 变化      |
+|    `cf监视`    | 群员 | 是 | 群聊 |       监视某人的 rating 变化和新提交       |
+|   `cf监视移除`   | 群员 | 是 | 群聊 |      移除某人的监视      |
 |   `cf监视列表`   | 群员 | 是 | 群聊 |         展示已经监视了哪些人          |
 |    `cf查询`    | 群员 | 是 | 群聊 |        查询对应 id 的相关信息        |
 |    `cf排名`    | 群员 | 是 | 群聊 |      查询当前监视列表的rating排名      |

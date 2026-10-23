@@ -4,10 +4,12 @@ from .config import *
 from .codeforces import *
 from .nowcoder import *
 from .atcoder import *
-from .aiosqlite import *
+from .json_store import *
+from .broadcast import broadcastChanges
 from .utils import *
 import datetime
 from datetime import timedelta
+import time
 from nonebot.plugin import on_fullmatch
 from nonebot import require, get_bot
 from nonebot.rule import to_me
@@ -29,7 +31,7 @@ __plugin_meta__ = PluginMetadata(
     usage= \
         "cf->查询cf比赛\n" \
         "@{botname} cf查询+id->查询某人信息\n" \
-        "@{botname} cf监视+id->监视某人rating变化\n" \
+        "@{botname} cf监视+id->监视某人rating变化和新提交\n" \
         "@{botname} cf监视移除+id->不再监视某人rating变化\n" \
         "@{botname} cf监视列表->展示已监视的选手id\n" \
         "@{botname} cf排名->展示已监视选手的排名\n" \
@@ -235,34 +237,12 @@ async def reply():
 
 # cf分数变化提醒、cf上线提醒
 async def cfBroadcast():
-    """
-    Users = {'ratingChange': [
-                {'handle': handle, 'remarks' : remarks,'oldRating': Rating.oldRating, 'newRating': Rating.newRating}
-                            ],
-            'cfOnline': [
-                {'handle': handle, 'remarks' : remarks, 'contestId': contestId}
-                            ]}
-    """
-    logger.info('cf监视工作开始')
-    messList = await returnChangeInfo()
-    logger.info('cf监视工作完成，结果已返回')
-
-    for id in cp_broadcast_cf_list:
-        await asyncio.sleep(1)
-        output = f"当前时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
-        if len(messList['ratingChange']) != 0:
-            for mess in messList['ratingChange']:
-                output += f"cf用户 {mess['handle']} ({mess['remarks']})分数发生变化，从 {mess['oldRating']} → {mess['newRating']}，变动了{int(mess['newRating'] - int(mess['oldRating']))}分！\n"
-            await get_bot().send_group_msg(group_id=id, message=output)
-            await asyncio.sleep(1)
-
-        for mess in messList['cfOnline']:
-            await get_bot().send_group_msg(group_id=id,
-                                           message=f"卷王 {mess['handle']} ({mess['remarks']})又开始上cf做题啦！他在做{mess['contestId']}！\n")
-            await asyncio.sleep(1)
+    if not cp_broadcast_cf_list:
+        return
+    await broadcastChanges(cp_broadcast_cf_list, get_bot().send_group_msg)
 
 
 if scheduler:
     scheduler.add_job(
-        cfBroadcast, "interval", minutes=cp_broadcast_cf_interval, id="cfBroadcast"
+        cfBroadcast, "interval", minutes=cp_broadcast_cf_interval, id="cfBroadcast", max_instances=1, coalesce=True
     )

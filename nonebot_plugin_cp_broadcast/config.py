@@ -12,7 +12,7 @@ from nonebot_plugin_localstore import get_data_dir
 
 
 class Config(BaseModel, extra=Extra.ignore):
-    cp_broadcast_path: str = get_data_dir("nonebot_plugin_cp_broadcast")
+    cp_broadcast_path: str = str(get_data_dir("nonebot_plugin_cp_broadcast"))
     cp_broadcast_list: List[str] = []
     cp_broadcast_botname: str = "bot"
     cp_broadcast_time: Dict[str, str] = {"hour": "7", "minute": "20"}
