@@ -5,7 +5,9 @@ from datetime import timedelta
 from nonebot.plugin import on_fullmatch, on_command
 from nonebot.adapters.onebot.v11.message import Message
 from nonebot.adapters.onebot.v11 import Bot, PrivateMessageEvent, GroupMessageEvent
+from nonebot.adapters.onebot.v11.exception import ActionFailed
 from nonebot.params import CommandArg
+from nonebot.log import logger
 from nonebot.rule import to_me
 from typing import List
 from .json_store import *
@@ -146,12 +148,21 @@ async def bind_list_handle():
 
 @query.handle()
 async def query_handle(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
-    cfid = args.extract_plain_text()
-    if cfid:
-        msg = await queryUser(cfid)
+    parts = args.extract_plain_text().strip().split()
+    text_only = "--text" in parts
+    handles = [part for part in parts if part != "--text"]
+    if len(handles) != 1 or handles[0].startswith("--"):
+        await query.finish('查询格式：cf查询 <handle>（图片卡片），纯文本：cf查询 <handle> --text')
+        return
+    cfid = handles[0]
+    msg = await queryUser(cfid, text_only=text_only)
+    try:
         await query.finish(msg)
-    else:
-        await query.finish('查询失败，请检查格式')
+    except ActionFailed as error:
+        logger.error(
+            "cf查询 {} 的 QQ 消息发送失败，发送结果可能不明，不自动重试。"
+            "可使用 cf查询 {} --text 排查图片发送问题。错误：{}".format(cfid, cfid, error)
+        )
 
 
 @rank.handle()

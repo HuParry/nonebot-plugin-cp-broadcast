@@ -181,6 +181,18 @@ Codeforces 做题监视每隔 `cp_broadcast_cf_interval` 分钟查询最新提�
 |    `cf排名`    | 群员 | 是 | 群聊 |      查询当前监视列表的rating排名      |
 |   `cf监视备注`   | 群员 | 是 | 群聊 | 给某个已经被监视的人备注一个名字，两字符串之间用空格隔开 |
 
+`cf查询 HuParry` 默认返回一张 Codeforces 风格的用户资料卡，展示 handle、段位、当前/最高 rating、贡献和最后在线时间。图片由 Pillow 在本地渲染成单张 PNG，将头像嵌入同一张图片，不依赖浏览器或系统字体。更新后请重新安装插件依赖；渲染失败时使用纯文本回复。`cf查询HuParry --text` 可直接查询纯文本，图片交给 QQ 发送后超时则不自动补发。
+
+头像使用 API 的 `avatar` 字段：将 `https://userpic.codeforces.org/...` 转成 `https://codeforces.com/userpic.codeforces.org/...`，保留 `/avatar/` 路径及原文件名，不替换成 `titlePhoto`。头像缺失或下载失败时尝试 `https://codeforces.com/userpic.codeforces.org/no-title.jpg`；默认图也无法获取时仍生成无头像卡片。纯文本模式不请求头像。
+
+`Last Online` 来自 API 的 `lastOnlineTimeSeconds`，统一转换为北京时间（UTC+8），格式为 `YYYY-MM-DD HH:mm:ss`；图片中日期和时分秒分两行显示，缺失或无效时显示 `-`。
+
+资料卡采用适合群聊的紧凑横版布局，突出昵称、段位和当前 rating，下方只保留最高 rating、贡献和 Last Online（最后在线时间）。下面是效果预览（使用示例数据，不代表 HuParry 的实时资料）：
+
+![Codeforces 用户资料卡预览](./docs/user-card-preview.png)
+
+若日志出现 `ActionFailed`、`NodeIKernelMsgService/sendMsg`、`onMsgInfoListUpdate` 超时，错误发生在 QQ 消息发送回执阶段，不代表 Codeforces API 查询失败。可手动用 `--text` 查询帮助排查：纯文本正常而含图消息失败时，检查图片发送链路；纯文本也超时时，需检查 NapCat/QQ 的对应日志与运行状态。插件不会在发送结果不明时自动重试，避免重复消息。
+
 
 ### 效果图
 

@@ -7,11 +7,14 @@ import os
 import tempfile
 import time
 from typing import List
+from urllib.parse import urlsplit, urlunsplit
 
 from httpx import AsyncClient
 from nonebot import get_driver
-from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.adapters.onebot.v11 import MessageSegment
 from nonebot.log import logger
+
+from .user_card import format_last_online, render_user_card
 
 from .config import (
     cp_broadcast_path,
@@ -681,42 +684,83 @@ async def returnBindList():
     return msg
 
 
-async def queryUser(id: str):
-    url = cf_user_info_baseurl + id
-    msg = MessageSegment.text("查询失败！请检查该用户是否存在")
+def _normalize_avatar_url(value):
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = urlsplit("https:" + value if value.startswith("//") else value)
+        if parsed.scheme not in ("http", "https"):
+            return None
+        if parsed.hostname == "userpic.codeforces.org":
+            path = "/userpic.codeforces.org" + parsed.path
+        elif parsed.hostname == "codeforces.com" and parsed.path.startswith("/userpic.codeforces.org/"):
+            path = parsed.path
+        else:
+            return None
+        # Preserve the avatar path and filename; do not substitute titlePhoto.
+        return urlunsplit(("https", "codeforces.com", path, parsed.query, ""))
+    except ValueError:
+        return None
+
+
+async def _download_avatar(value):
+    default_url = "https://codeforces.com/userpic.codeforces.org/no-title.jpg"
+    urls = list(dict.fromkeys(filter(None, (_normalize_avatar_url(value), default_url))))
+    for url in urls:
+        try:
+            async with AsyncClient() as client:
+                response = await client.get(
+                    url, timeout=10.0, follow_redirects=True,
+                    headers={"User-Agent": "Mozilla/5.0", "Referer": "https://codeforces.com/"},
+                )
+            response.raise_for_status()
+            content = response.content
+            if (not response.headers.get("content-type", "").lower().startswith("image/") or
+                    not content or len(content) > 3 * 1024 * 1024):
+                raise ValueError("头像不是有效大小的图片响应")
+            return content
+        except Exception as error:
+            logger.warning("头像获取失败：{}，尝试默认图或无头像布局".format(error))
+    return None
+
+
+async def queryUser(id: str, text_only: bool = False):
+    handle = id.strip()
+    if not handle:
+        return MessageSegment.text("查询失败，请提供 Codeforces handle")
+    url = cf_user_info_baseurl + handle
     try:
         data = await requestCodeforces(url)
     except Exception as error:
         logger.warning(error)
-        return msg
+        return MessageSegment.text("Codeforces 请求失败，请稍后再试")
 
-    if data.get("status") == "OK":
-        for result in data.get("result", []):
-            avatar_url = result.get("avatar")
-            name = result.get("handle", id)
-            rank = result.get("rank", "Unrated")
-            contest_rating = result.get("rating", "0")
-            max_rating = result.get("maxRating", "0")
-            contribution = result.get("contribution", "0")
-            friend_of = result.get("friendOfCount", "0")
-
-            if avatar_url:
-                async with AsyncClient() as client:
-                    image_response = await client.get(avatar_url, timeout=10.0)
-                msg = MessageSegment.image(image_response.content)
-            else:
-                msg = MessageSegment.text("")
-            msg += Message(
-                "\nname: " + str(name) +
-                "\nrank: " + str(rank) +
-                "\nrating: " + str(contest_rating) +
-                "\nmax rating: " + str(max_rating) +
-                "\ncontribution: " + str(contribution) +
-                "\nfriend of: " + str(friend_of) + " users"
-            )
-            return msg
-    else:
+    results = data.get("result")
+    if (data.get("status") != "OK" or not isinstance(results, list) or
+            not results or not isinstance(results[0], dict)):
         logger.warning("查询 Codeforces 用户失败")
+        return MessageSegment.text("查询失败！请检查该用户是否存在")
+
+    result = results[0]
+    msg = MessageSegment.text(
+        "name: " + str(result.get("handle", handle)) +
+        "\nrank: " + str(result.get("rank", "Unrated")) +
+        "\nrating: " + str(result.get("rating", 0)) +
+        "\nmax rating: " + str(result.get("maxRating", 0)) +
+        "\ncontribution: " + str(result.get("contribution", 0)) +
+        "\nLast Online: " + format_last_online(result.get("lastOnlineTimeSeconds")) + " (UTC+8)"
+    )
+    if text_only:
+        return msg
+    try:
+        if render_user_card is None:
+            raise RuntimeError("缺少 Pillow，请安装插件依赖")
+        avatar = await _download_avatar(result.get("avatar"))
+        # Pillow rendering runs off the event loop so other commands can run.
+        png = await asyncio.get_running_loop().run_in_executor(None, render_user_card, result, avatar)
+        return MessageSegment.image(png)
+    except Exception as error:
+        logger.warning("Codeforces 资料卡渲染失败，使用纯文本回复：{}".format(error))
     return msg
 
 
