@@ -659,16 +659,12 @@ async def claimNotification(group_id, kind, event):
 
 
 def formatSubmissionNotice(event):
-    text = "检测到 cf用户 {} ({}) 有新提交，提交 ID：{}".format(
-        event["handle"], event["remarks"], event["submissionId"]
+    text = "卷王{} ({})又开始上cf做题啦！".format(
+        event["handle"], event["remarks"]
     )
     if event.get("contestId") is not None:
-        text += "，比赛 ID：{}".format(event["contestId"])
-    if event.get("creationTimeSeconds") is not None:
-        text += "，提交时间：{}".format(time.strftime(
-            "%Y-%m-%d %H:%M:%S", time.localtime(event["creationTimeSeconds"])
-        ))
-    return text + "。\n"
+        text += "ta在做{}！".format(event["contestId"])
+    return text
 
 
 async def returnBindList():

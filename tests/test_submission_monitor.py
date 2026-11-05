@@ -290,8 +290,7 @@ class SubmissionMonitorTests(unittest.IsolatedAsyncioTestCase):
             self.now += 600
         self.assertEqual(len([call for call in calls if call[0] == "good"]), 2)
         self.assertEqual(len([call for call in calls if call[0] == "failed"]), 2)
-        self.assertIn("提交 ID：101", calls[0][1])
-        self.assertNotIn("又开始", calls[0][1])
+        self.assertEqual(calls[0][1], "卷王primal_potato (primal_potato)又开始上cf做题啦！ta在做2271！")
 
     async def test_22_cycles_confirmation_disk_failure_does_not_repeat_sends(self):
         await self.prepare_broadcast()
