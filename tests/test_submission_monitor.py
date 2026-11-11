@@ -357,6 +357,86 @@ class SubmissionMonitorTests(unittest.IsolatedAsyncioTestCase):
         ))
         self.assertEqual(send.await_count, 2)
 
+    async def test_slow_poll_drops_overlapping_rounds_without_queueing(self):
+        changes = await self.prepare_broadcast(two_users=False)
+        broadcast = self.store.broadcast
+        started, release = asyncio.Event(), asyncio.Event()
+        async def slow_poll():
+            started.set()
+            await release.wait()
+            return changes
+        broadcast.returnChangeInfo.side_effect = slow_poll
+        send = AsyncMock()
+        first = asyncio.create_task(broadcast.broadcastChanges(["good"], send))
+        try:
+            await asyncio.wait_for(started.wait(), timeout=1)
+            await asyncio.wait_for(asyncio.gather(*(
+                broadcast.broadcastChanges(["good"], send) for _ in range(22)
+            )), timeout=1)
+            broadcast.returnChangeInfo.assert_awaited_once()
+            send.assert_not_awaited()
+        finally:
+            release.set()
+            await first
+        await asyncio.sleep(0)
+        # Finishing the slow round must not start any skipped rounds.
+        broadcast.returnChangeInfo.assert_awaited_once()
+        await broadcast.broadcastChanges(["good"], send)
+        self.assertEqual(broadcast.returnChangeInfo.await_count, 2)
+
+    async def test_round_stays_busy_until_message_sending_finishes(self):
+        await self.prepare_broadcast(two_users=False)
+        broadcast = self.store.broadcast
+        sending, release = asyncio.Event(), asyncio.Event()
+        async def slow_send(**kwargs):
+            sending.set()
+            await release.wait()
+        send = AsyncMock(side_effect=slow_send)
+        first = asyncio.create_task(broadcast.broadcastChanges(["good"], send))
+        try:
+            await asyncio.wait_for(sending.wait(), timeout=1)
+            await asyncio.wait_for(broadcast.broadcastChanges(["good"], send), timeout=1)
+            broadcast.returnChangeInfo.assert_awaited_once()
+            send.assert_awaited_once()
+        finally:
+            release.set()
+            await first
+        await broadcast.broadcastChanges(["good"], send)
+        self.assertEqual(broadcast.returnChangeInfo.await_count, 2)
+
+    async def test_failed_poll_does_not_leave_monitor_permanently_busy(self):
+        await self.prepare_broadcast(two_users=False)
+        broadcast = self.store.broadcast
+        broadcast.returnChangeInfo.side_effect = RuntimeError("poll failed")
+        send = AsyncMock()
+        with self.assertRaises(RuntimeError):
+            await broadcast.broadcastChanges(["good"], send)
+        broadcast.returnChangeInfo.side_effect = None
+        await broadcast.broadcastChanges(["good"], send)
+        self.assertEqual(broadcast.returnChangeInfo.await_count, 2)
+        send.assert_awaited_once()
+
+    async def test_cancelled_poll_releases_round_guard(self):
+        await self.prepare_broadcast(two_users=False)
+        broadcast = self.store.broadcast
+        started, release = asyncio.Event(), asyncio.Event()
+        async def slow_poll():
+            started.set()
+            await release.wait()
+        broadcast.returnChangeInfo.side_effect = slow_poll
+        send = AsyncMock()
+        first = asyncio.create_task(broadcast.broadcastChanges(["good"], send))
+        try:
+            await asyncio.wait_for(started.wait(), timeout=1)
+        finally:
+            first.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await first
+        broadcast.returnChangeInfo.side_effect = None
+        await broadcast.broadcastChanges(["good"], send)
+        self.assertEqual(broadcast.returnChangeInfo.await_count, 2)
+        send.assert_awaited_once()
+
     async def test_restart_after_cancellation_does_not_replay_a_reserved_message(self):
         await self.prepare_broadcast(two_users=False)
         send = AsyncMock(side_effect=asyncio.CancelledError())

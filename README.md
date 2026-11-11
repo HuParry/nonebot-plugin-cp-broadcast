@@ -97,7 +97,7 @@ _✨ 一个 Codeforces、牛客竞赛、AtCoder 平台的编程竞赛查询插�
 |    cp_broadcast_time     | 否 |         {"hour":"7", "minute":"20"}         |             每日在群聊播报比赛信息的时间，默认是早上 7 点 20，你可以在配置文件中按默认值格式修改成你想要的时间             |
 | cp_broadcast_updatetime  | 否 |         {"hour":"0", "minute":"0"}          |              每天自动更新比赛数据的时间，默认是 0 点 0 分，你可以在配置文件中按默认值格式修改成你想要的时间              |
 |   cp_broadcast_cf_list   | 否 |                     [ ]                     |                   开启 Codeforces 播报功能的群聊，cf监视的相关功能只在指定群聊里发送                   |
-| cp_broadcast_cf_interval | 否 |                     10                      | 更新 Codeforces 监视信息的时间间隙，默认为 10 分钟（不建议设置太短，可能会对服务器造成比较大的压力。另外监视人数多的话间隙尽量加长一点） |
+| cp_broadcast_cf_interval | 否 |                     10                      | Codeforces 监视任务的触发间隔，单位为分钟；上一轮尚未结束时跳过触发，不并发、不排队补跑。监视人数多时建议适当增大 |
 
 就像这样：
 ```
@@ -158,6 +158,8 @@ Codeforces 做题监视每隔 `cp_broadcast_cf_interval` 分钟查询最新提�
 `delivery_attempts` 以群号为键，每个群只保存最新提交 ID、尝试时间和 rating 水位，不逐条追加通知历史。数据目录下的 `.cp-broadcast.lock` 用于阻止多个进程同时使用同一份数据，业务数据仍全部保存在 `data.json`。
 
 插件内的 Codeforces API 请求共用限速锁，请求开始时间至少间隔 2.1 秒，以满足[官方每 2 秒最多一次请求的限制](https://codeforces.com/apiHelp)。监视人数较多时，一轮查询需要更长时间，请适当增加轮询间隔。
+
+监视任务在单个进程中最多运行一轮，保护范围包括查询全部用户、处理状态和发送群消息。上一轮未结束时，新的调用直接跳过，不会等待排队，也不会在结束后补跑；本轮异常或取消后会释放运行标记。例如触发间隔为 5 分钟、一轮耗时 8 分钟，以本轮开始为第 0 分钟，第 5 分钟的触发跳过，第 10 分钟再启动下一轮。日志会记录每轮耗时，便于调整间隔。
 
 该插件依赖 [nonebot_plugin_apscheduler](https://github.com/nonebot/plugin-apscheduler) 实现定时发送功能，如果你未安装此依赖的话，将无法触发与定时相关的功能。
 
